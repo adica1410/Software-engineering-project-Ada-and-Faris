@@ -3,45 +3,63 @@ package com.example.focusmodeapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.focusmodeapp.ui.theme.FocusModeAppTheme
+import androidx.compose.runtime.*
+import com.example.focusmodeapp.ui.CreateAccountScreen
+import com.example.focusmodeapp.ui.SplashScreen
+import com.example.focusmodeapp.ui.WelcomeScreen
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        val prefs = getSharedPreferences("focus_mode_user", MODE_PRIVATE)
+
         setContent {
-            FocusModeAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+
+            var currentScreen by remember {
+                mutableStateOf("splash")
+            }
+
+            LaunchedEffect(Unit) {
+                delay(3000)
+                currentScreen = "welcome"
+            }
+
+            when (currentScreen) {
+
+                "splash" -> {
+                    SplashScreen()
+                }
+
+                "welcome" -> {
+                    WelcomeScreen(
+                        onCreateAccountClick = {
+                            currentScreen = "createAccount"
+                        }
+                    )
+                }
+
+                "createAccount" -> {
+                    CreateAccountScreen(
+                        onBackClick = {
+                            currentScreen = "welcome"
+                        },
+                        onAccountCreated = { fullName, email, password ->
+
+                            prefs.edit()
+                                .putString("fullName", fullName)
+                                .putString("email", email)
+                                .putString("password", password)
+                                .putBoolean("isRegistered", true)
+                                .apply()
+
+                            currentScreen = "welcome"
+                        }
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FocusModeAppTheme {
-        Greeting("Android")
     }
 }
