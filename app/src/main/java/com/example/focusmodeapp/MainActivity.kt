@@ -8,6 +8,8 @@ import com.example.focusmodeapp.ui.CreateAccountScreen
 import com.example.focusmodeapp.ui.SplashScreen
 import com.example.focusmodeapp.ui.WelcomeScreen
 import kotlinx.coroutines.delay
+import com.example.focusmodeapp.StartFocusSessionScreen
+import com.example.focusmodeapp.StatisticsScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -17,10 +19,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("focus_mode_user", MODE_PRIVATE)
 
         setContent {
-
-            var currentScreen by remember {
-                mutableStateOf("splash")
-            }
+            var currentScreen by remember { mutableStateOf("splash") }
 
             LaunchedEffect(Unit) {
                 delay(3000)
@@ -28,37 +27,67 @@ class MainActivity : ComponentActivity() {
             }
 
             when (currentScreen) {
+                "splash" -> SplashScreen()
 
-                "splash" -> {
-                    SplashScreen()
-                }
+                "welcome" -> WelcomeScreen(
+                    onCreateAccountClick = {
+                        currentScreen = "createAccount"
+                    },
+                    onLoginClick = {
+                        currentScreen = "login"
+                    },
+                    onSkipClick = {
+                        currentScreen = "home"
+                    }
+                )
 
-                "welcome" -> {
-                    WelcomeScreen(
-                        onCreateAccountClick = {
-                            currentScreen = "createAccount"
-                        }
-                    )
-                }
+                "createAccount" -> CreateAccountScreen(
+                    onBackClick = {
+                        currentScreen = "welcome"
+                    },
+                    onAccountCreated = { fullName, email, password ->
+                        prefs.edit()
+                            .putString("fullName", fullName)
+                            .putString("email", email)
+                            .putString("password", password)
+                            .putBoolean("isRegistered", true)
+                            .apply()
 
-                "createAccount" -> {
-                    CreateAccountScreen(
-                        onBackClick = {
-                            currentScreen = "welcome"
-                        },
-                        onAccountCreated = { fullName, email, password ->
+                        currentScreen = "login"
+                    }
+                )
 
-                            prefs.edit()
-                                .putString("fullName", fullName)
-                                .putString("email", email)
-                                .putString("password", password)
-                                .putBoolean("isRegistered", true)
-                                .apply()
+                "login" -> LoginScreen(
+                    savedEmail = prefs.getString("email", null),
+                    savedPassword = prefs.getString("password", null),
+                    onLoginSuccess = {
+                        currentScreen = "home"
+                    },
+                    onBackClick = {
+                        currentScreen = "welcome"
+                    }
+                )
 
-                            currentScreen = "welcome"
-                        }
-                    )
-                }
+                "home" -> HomeScreen(
+                    onStartSessionClick = {
+                        currentScreen = "startSession"
+                    },
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    }
+                )
+
+                "statistics" -> StatisticsScreen(
+                    onHomeClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "startSession" -> StartFocusSessionScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
             }
         }
     }

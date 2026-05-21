@@ -27,11 +27,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.focusmodeapp.R
+import androidx.compose.foundation.clickable
 
 @Composable
 fun WelcomeScreen(
-    onCreateAccountClick: () -> Unit
+    onCreateAccountClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    onSkipClick: () -> Unit
 ) {
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -46,15 +50,23 @@ fun WelcomeScreen(
                 )
             )
     ) {
-        Text(
-            text = "Skip  ›",
-            color = Color(0xFF9B5CFF),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+
+        // SKIP BUTTON
+        Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 54.dp, end = 28.dp)
-        )
+                .padding(top = 44.dp, end = 18.dp)
+                .clickable { onSkipClick() }
+                .padding(12.dp)
+        ) {
+
+            Text(
+                text = "Skip  ›",
+                color = Color(0xFF9B5CFF),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -62,8 +74,10 @@ fun WelcomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(top = 95.dp, bottom = 45.dp),
+
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo",
@@ -124,22 +138,33 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            GradientButton(text = "Log In")
+            GradientButton(
+                text = "Log In",
+                onClick = {
+                    onLoginClick()
+                }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlineButton(
                 text = "Create Account",
-                onClick = onCreateAccountClick
+                onClick = {
+                    onCreateAccountClick()
+                }
             )
         }
     }
 }
 
 @Composable
-fun GradientButton(text: String) {
+
+fun GradientButton(
+    text: String,
+    onClick: () -> Unit
+) {
     Button(
-        onClick = {},
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(62.dp),
