@@ -20,7 +20,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HomeScreen(
     onStartSessionClick: () -> Unit,
-    onStatisticsClick: () -> Unit
+    onStatisticsClick: () -> Unit,
+    onGoalsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -149,7 +150,8 @@ fun HomeScreen(
 
         BottomNavigationBar(
             modifier = Modifier.align(Alignment.BottomCenter),
-            onStatisticsClick = onStatisticsClick
+            onStatisticsClick = onStatisticsClick,
+            onGoalsClick = onGoalsClick
         )
     }
 }
@@ -661,7 +663,8 @@ fun ReminderCard() {
 @Composable
 fun BottomNavigationBar(
     modifier: Modifier = Modifier,
-    onStatisticsClick: () -> Unit
+    onStatisticsClick: () -> Unit,
+    onGoalsClick: () -> Unit
 ) {
     Box(
         modifier = modifier
@@ -680,7 +683,12 @@ fun BottomNavigationBar(
         ) {
             BottomNavItem("⌂", "Home", true)
             BottomNavItem("▥", "Statistics", false, onClick = onStatisticsClick)
-            BottomNavItem("◎", "Goals", false)
+            BottomNavItem(
+                icon = "◎",
+                title = "Goals",
+                selected = false,
+                onClick = onGoalsClick
+            )
             BottomNavItem("⬡", "Blocked", false)
             BottomNavItem("♙", "Profile", false)
         }

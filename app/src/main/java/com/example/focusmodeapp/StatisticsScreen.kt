@@ -14,7 +14,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun StatisticsScreen(
-    onHomeClick: () -> Unit
+    onHomeClick: () -> Unit,
+    onGoalsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -70,7 +71,8 @@ fun StatisticsScreen(
 
         StatisticsBottomNav(
             modifier = Modifier.align(Alignment.BottomCenter),
-            onHomeClick = onHomeClick
+            onHomeClick = onHomeClick,
+            onGoalsClick = onGoalsClick
         )
     }
 }
@@ -376,32 +378,33 @@ fun WeeklyOverviewCard() {
 @Composable
 fun StatisticsBottomNav(
     modifier: Modifier = Modifier,
-    onHomeClick: () -> Unit
+    onHomeClick: () -> Unit,
+    onGoalsClick: () -> Unit
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(86.dp)
+            .height(92.dp)
             .background(
                 Color(0xFF0B1020),
-                RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+                RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
             )
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             BottomNavItemStats("⌂", "Home", false, onClick = onHomeClick)
             BottomNavItemStats("▥", "Statistics", true, onClick = {})
-            BottomNavItemStats("◎", "Goals", false, onClick = {})
-            BottomNavItemStats("◷", "Focus", false, onClick = {})
+            BottomNavItemStats("◎", "Goals", false, onClick = onGoalsClick)
+            BottomNavItemStats("⬡", "Blocked", false, onClick = {})
             BottomNavItemStats("♙", "Profile", false, onClick = {})
         }
     }
 }
-
 @Composable
 fun BottomNavItemStats(
     icon: String,

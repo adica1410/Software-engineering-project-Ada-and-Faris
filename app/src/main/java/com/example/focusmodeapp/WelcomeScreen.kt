@@ -27,7 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.focusmodeapp.R
-import androidx.compose.foundation.clickable
 
 @Composable
 fun WelcomeScreen(
@@ -35,7 +34,6 @@ fun WelcomeScreen(
     onLoginClick: () -> Unit,
     onSkipClick: () -> Unit
 ) {
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,34 +48,14 @@ fun WelcomeScreen(
                 )
             )
     ) {
-
-        // SKIP BUTTON
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 44.dp, end = 18.dp)
-                .clickable { onSkipClick() }
-                .padding(12.dp)
-        ) {
-
-            Text(
-                text = "Skip  ›",
-                color = Color(0xFF9B5CFF),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(top = 95.dp, bottom = 45.dp),
-
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo",
@@ -140,23 +118,33 @@ fun WelcomeScreen(
 
             GradientButton(
                 text = "Log In",
-                onClick = {
-                    onLoginClick()
-                }
+                onClick = onLoginClick
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlineButton(
                 text = "Create Account",
-                onClick = {
-                    onCreateAccountClick()
-                }
+                onClick = onCreateAccountClick
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 54.dp, end = 28.dp)
+                .clickable { onSkipClick() }
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "Skip  ›",
+                color = Color(0xFF9B5CFF),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
-
 @Composable
 
 fun GradientButton(

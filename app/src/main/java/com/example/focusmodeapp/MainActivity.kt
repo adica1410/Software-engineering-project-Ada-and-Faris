@@ -8,8 +8,6 @@ import com.example.focusmodeapp.ui.CreateAccountScreen
 import com.example.focusmodeapp.ui.SplashScreen
 import com.example.focusmodeapp.ui.WelcomeScreen
 import kotlinx.coroutines.delay
-import com.example.focusmodeapp.StartFocusSessionScreen
-import com.example.focusmodeapp.StatisticsScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -19,7 +17,41 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("focus_mode_user", MODE_PRIVATE)
 
         setContent {
-            var currentScreen by remember { mutableStateOf("splash") }
+
+            var currentScreen by remember {
+                mutableStateOf("splash")
+            }
+
+            var savedGoals by remember {
+                mutableStateOf(
+                    listOf(
+                        StudyGoal(
+                            name = "Daily Goal",
+                            type = "Daily",
+                            hours = 4,
+                            minutes = 0,
+                            completedHours = 0,
+                            completedMinutes = 0,
+                            reminderEnabled = true,
+                            reminderTime = "8:00 PM"
+                        ),
+                        StudyGoal(
+                            name = "Weekly Goal",
+                            type = "Weekly",
+                            hours = 15,
+                            minutes = 0,
+                            completedHours = 0,
+                            completedMinutes = 0,
+                            reminderEnabled = true,
+                            reminderTime = "8:00 PM"
+                        )
+                    )
+                )
+            }
+
+            var editingGoal by remember {
+                mutableStateOf<StudyGoal?>(null)
+            }
 
             LaunchedEffect(Unit) {
                 delay(3000)
@@ -27,6 +59,7 @@ class MainActivity : ComponentActivity() {
             }
 
             when (currentScreen) {
+
                 "splash" -> SplashScreen()
 
                 "welcome" -> WelcomeScreen(
@@ -74,12 +107,95 @@ class MainActivity : ComponentActivity() {
                     },
                     onStatisticsClick = {
                         currentScreen = "statistics"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
                     }
                 )
 
                 "statistics" -> StatisticsScreen(
                     onHomeClick = {
                         currentScreen = "home"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
+                    }
+                )
+
+                "goals" -> GoalsScreen(
+                    savedGoals = savedGoals,
+
+                    onDeleteGoal = { goal ->
+                        savedGoals = savedGoals - goal
+                    },
+
+                    onEditGoal = { goal ->
+                        editingGoal = goal
+                        currentScreen = "createGoal"
+                    },
+
+                    onAddStudyTime = { goal ->
+                        val exists = savedGoals.any { it == goal }
+
+                        savedGoals = if (exists) {
+                            savedGoals.map {
+                                if (it == goal) {
+                                    it.copy(
+                                        completedHours = it.completedHours + 1
+                                    )
+                                } else {
+                                    it
+                                }
+                            }
+                        } else {
+                            savedGoals + goal.copy(
+                                completedHours = goal.completedHours + 1
+                            )
+                        }
+                    },
+
+                    onHomeClick = {
+                        currentScreen = "home"
+                    },
+
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+
+                    onGoalsClick = {},
+
+                    onCreateGoalClick = {
+                        editingGoal = null
+                        currentScreen = "createGoal"
+                    }
+                )
+
+                "createGoal" -> CreateGoalScreen(
+                    goalToEdit = editingGoal,
+
+                    onBackClick = {
+                        editingGoal = null
+                        currentScreen = "goals"
+                    },
+
+                    onSaveGoalClick = { goal ->
+
+                        if (editingGoal != null) {
+                            val alreadyExists = savedGoals.any { it == editingGoal }
+
+                            savedGoals = if (alreadyExists) {
+                                savedGoals.map {
+                                    if (it == editingGoal) goal else it
+                                }
+                            } else {
+                                savedGoals + goal
+                            }
+                        } else {
+                            savedGoals = savedGoals + goal
+                        }
+
+                        editingGoal = null
+                        currentScreen = "goals"
                     }
                 )
 
