@@ -135,6 +135,27 @@ app.get("/sessions", (req, res) => {
   });
 });
 
+// READ sessions by user
+app.get("/sessions/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM focus_sessions
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching user sessions",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+
 // READ one session
 app.get("/sessions/:id", (req, res) => {
   const sql = "SELECT * FROM focus_sessions WHERE id = ?";

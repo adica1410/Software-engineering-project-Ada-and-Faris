@@ -4,7 +4,10 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.util.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.*
@@ -17,6 +20,41 @@ fun StatisticsScreen(
     onHomeClick: () -> Unit,
     onGoalsClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    val userId = prefs.getInt("userId", 1)
+
+    var sessions by remember { mutableStateOf<List<SessionResponse>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.api.getUserSessions(userId)
+            if (response.isSuccessful) {
+                sessions = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            sessions = emptyList()
+        }
+    }
+
+    val totalMinutes = sessions.sumOf { it.duration_minutes }
+    val completedSessions = sessions.count { it.status == "completed" }
+
+    val todayMinutes = sessions
+        .filter { isToday(it.created_at) }
+        .sumOf { it.duration_minutes }
+
+    val todaySessions = sessions
+        .count { isToday(it.created_at) }
+
+    val weekMinutes = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_minutes }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -47,7 +85,7 @@ fun StatisticsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            TotalStudyCard()
+            TotalStudyCard(totalMinutes)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -55,18 +93,18 @@ fun StatisticsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MiniStat("⏱", "28", "Completed\nSessions", Modifier.weight(1f))
+                MiniStat("⏱", completedSessions.toString(), "Completed\nSessions", Modifier.weight(1f))
                 MiniStat("🎯", "92%", "Focus\nScore", Modifier.weight(1f))
                 MiniStat("🔥", "7", "Day\nStreak", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            DailyStatisticsCard()
+            DailyStatisticsCard(todayMinutes, todaySessions)
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            WeeklyOverviewCard()
+            WeeklyOverviewCard(weekMinutes)
         }
 
         StatisticsBottomNav(
@@ -78,7 +116,7 @@ fun StatisticsScreen(
 }
 
 @Composable
-fun TotalStudyCard() {
+fun TotalStudyCard(totalMinutes: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -106,7 +144,7 @@ fun TotalStudyCard() {
 
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "42",
+                    text = (totalMinutes / 60).toString(),
                     color = Color.White,
                     fontSize = 39.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -119,7 +157,7 @@ fun TotalStudyCard() {
                 )
 
                 Text(
-                    text = "37",
+                    text = (totalMinutes % 60).toString(),
                     color = Color.White,
                     fontSize = 39.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -190,7 +228,7 @@ fun MiniStat(
 }
 
 @Composable
-fun DailyStatisticsCard() {
+fun DailyStatisticsCard(todayMinutes: Int, todaySessions: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -247,7 +285,7 @@ fun DailyStatisticsCard() {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Today", color = Color(0xFFAAA6BB), fontSize = 12.sp)
-                    Text("4h 25m", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(formatMinutes(todayMinutes), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Text("🎯", fontSize = 28.sp)
@@ -256,7 +294,7 @@ fun DailyStatisticsCard() {
 
                 Column {
                     Text("Sessions", color = Color(0xFFAAA6BB), fontSize = 12.sp)
-                    Text("5", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(todaySessions.toString(), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -308,7 +346,7 @@ fun ChartBar(day: String, height: Float) {
 }
 
 @Composable
-fun WeeklyOverviewCard() {
+fun WeeklyOverviewCard(weekMinutes: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -350,7 +388,7 @@ fun WeeklyOverviewCard() {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "24h 18m",
+                text = formatMinutes(weekMinutes),
                 color = Color.White,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
@@ -428,4 +466,45 @@ fun BottomNavItemStats(
             fontSize = 12.sp
         )
     }
+}
+
+
+fun formatMinutes(totalMinutes: Int): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return "${hours}h ${minutes}m"
+}
+
+fun parseBackendDate(dateString: String): Date? {
+    return try {
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        formatter.timeZone = TimeZone.getTimeZone("UTC")
+        formatter.parse(dateString)
+    } catch (e: Exception) {
+        null
+    }
+}
+
+fun isToday(dateString: String): Boolean {
+    val date = parseBackendDate(dateString) ?: return false
+
+    val sessionCalendar = Calendar.getInstance()
+    sessionCalendar.time = date
+
+    val today = Calendar.getInstance()
+
+    return sessionCalendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            sessionCalendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+}
+
+fun isThisWeek(dateString: String): Boolean {
+    val date = parseBackendDate(dateString) ?: return false
+
+    val sessionCalendar = Calendar.getInstance()
+    sessionCalendar.time = date
+
+    val today = Calendar.getInstance()
+
+    return sessionCalendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            sessionCalendar.get(Calendar.WEEK_OF_YEAR) == today.get(Calendar.WEEK_OF_YEAR)
 }
