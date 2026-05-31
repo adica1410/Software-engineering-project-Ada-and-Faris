@@ -176,6 +176,71 @@ app.delete("/goals/:id", (req, res) => {
 });
 
 
+// CREATE reminder
+app.post("/reminders", (req, res) => {
+  const {
+    user_id,
+    title,
+    reminder_time,
+    is_enabled = true
+  } = req.body;
+
+  if (!user_id || !title || !reminder_time) {
+    return res.status(400).json({
+      message: "user_id, title and reminder_time are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO reminders
+    (user_id, title, reminder_time, is_enabled)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [user_id, title, reminder_time, is_enabled],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error creating reminder",
+          error: err.message
+        });
+      }
+
+      res.status(201).json({
+        id: result.insertId,
+        user_id,
+        title,
+        reminder_time,
+        is_enabled
+      });
+    }
+  );
+});
+
+// READ reminders by user
+app.get("/reminders/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM reminders
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching reminders",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+
+
 // CREATE session
 app.post("/sessions", (req, res) => {
   const {
