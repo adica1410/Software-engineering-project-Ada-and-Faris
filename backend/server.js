@@ -240,6 +240,72 @@ app.get("/reminders/user/:userId", (req, res) => {
 });
 
 
+// READ badges by user
+app.get("/badges/user/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  const sessionsSql = `
+    SELECT COUNT(*) AS session_count,
+           COALESCE(SUM(duration_minutes), 0) AS total_minutes
+    FROM focus_sessions
+    WHERE user_id = ?
+  `;
+
+  const goalsSql = `
+    SELECT COUNT(*) AS goal_count
+    FROM study_goals
+    WHERE user_id = ?
+  `;
+
+  db.query(sessionsSql, [userId], (err, sessionResults) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error checking sessions for badges",
+        error: err.message
+      });
+    }
+
+    db.query(goalsSql, [userId], (err, goalResults) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error checking goals for badges",
+          error: err.message
+        });
+      }
+
+      const sessionCount = sessionResults[0].session_count;
+      const totalMinutes = sessionResults[0].total_minutes;
+      const goalCount = goalResults[0].goal_count;
+
+      const badges = [];
+
+      if (sessionCount >= 1) {
+        badges.push({
+          badge_name: "First Focus Session",
+          badge_description: "Completed your first focus session."
+        });
+      }
+
+      if (goalCount >= 1) {
+        badges.push({
+          badge_name: "Goal Setter",
+          badge_description: "Created your first study goal."
+        });
+      }
+
+      if (totalMinutes >= 60) {
+        badges.push({
+          badge_name: "Focused Learner",
+          badge_description: "Studied for at least 60 minutes in total."
+        });
+      }
+
+      res.json(badges);
+    });
+  });
+});
+
+
 
 // CREATE session
 app.post("/sessions", (req, res) => {
