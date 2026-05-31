@@ -40,6 +40,24 @@ fun HomeScreen(
     val fullName = prefs.getString("fullName", "User") ?: "User"
     val firstName = fullName.split(" ").firstOrNull() ?: fullName
 
+    val userId = prefs.getInt("userId", 1)
+
+    var reminders by remember { mutableStateOf<List<ReminderResponse>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.api.getUserReminders(userId)
+            if (response.isSuccessful) {
+                reminders = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            reminders = emptyList()
+        }
+    }
+
+    val latestReminder = reminders.firstOrNull()
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -162,7 +180,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            ReminderCard()
+            ReminderCard(latestReminder)
         }
 
         BottomNavigationBar(
@@ -696,7 +714,7 @@ fun StreakCard(modifier: Modifier) {
 }
 
 @Composable
-fun ReminderCard() {
+fun ReminderCard(reminder: ReminderResponse?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -717,14 +735,14 @@ fun ReminderCard() {
                 )
 
                 Text(
-                    text = "Math Study",
+                    text = reminder?.title ?: "No reminder yet",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Today, 18:00",
+                    text = reminder?.let { "Today, ${it.reminder_time}" } ?: "Create a reminder to stay consistent",
                     color = Color(0xFFAAA6BB),
                     fontSize = 12.sp
                 )

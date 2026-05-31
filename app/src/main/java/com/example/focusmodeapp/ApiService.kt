@@ -43,4 +43,9 @@ interface ApiService {
     suspend fun deleteGoal(
         @Path("id") id: Int
     ): Response<Any>
+
+    @GET("reminders/user/{userId}")
+    suspend fun getUserReminders(
+        @Path("userId") userId: Int
+    ): Response<List<ReminderResponse>>
 }
