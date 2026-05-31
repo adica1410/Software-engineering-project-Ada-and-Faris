@@ -53,4 +53,9 @@ interface ApiService {
     suspend fun getUserBadges(
         @Path("userId") userId: Int
     ): Response<List<BadgeResponse>>
+
+    @DELETE("sessions/{id}")
+    suspend fun deleteSession(
+        @Path("id") id: Int
+    ): Response<Any>
 }

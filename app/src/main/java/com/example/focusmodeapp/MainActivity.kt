@@ -120,6 +120,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onBadgesClick = {
                         currentScreen = "badges"
+                    },
+                    onHistoryClick = {
+                        currentScreen = "history"
                     }
                 )
 
@@ -181,6 +184,12 @@ class MainActivity : ComponentActivity() {
                 )
 
                 "badges" -> BadgesScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "history" -> SessionHistoryScreen(
                     onBackClick = {
                         currentScreen = "home"
                     }

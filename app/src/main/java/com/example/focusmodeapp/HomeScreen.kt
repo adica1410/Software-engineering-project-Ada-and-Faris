@@ -29,7 +29,8 @@ fun HomeScreen(
     onStartSessionClick: () -> Unit,
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
-    onBadgesClick: () -> Unit
+    onBadgesClick: () -> Unit,
+    onHistoryClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -127,7 +128,10 @@ fun HomeScreen(
                     text = "View all  ›",
                     color = Color(0xFF9B5CFF),
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        onHistoryClick()
+                    }
                 )
             }
 
