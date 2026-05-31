@@ -42,11 +42,16 @@ fun StatisticsScreen(
     }
 
     val totalMinutes = sessions.sumOf { it.duration_minutes }
+    val totalSeconds = sessions.sumOf { it.duration_seconds }
     val completedSessions = sessions.count { it.status == "completed" }
 
     val todayMinutes = sessions
         .filter { isToday(it.created_at) }
         .sumOf { it.duration_minutes }
+
+    val todaySeconds = sessions
+        .filter { isToday(it.created_at) }
+        .sumOf { it.duration_seconds }
 
     val todaySessions = sessions
         .count { isToday(it.created_at) }
@@ -54,6 +59,10 @@ fun StatisticsScreen(
     val weekMinutes = sessions
         .filter { isThisWeek(it.created_at) }
         .sumOf { it.duration_minutes }
+
+    val weekSeconds = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_seconds }
 
     Box(
         modifier = Modifier
@@ -85,7 +94,7 @@ fun StatisticsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            TotalStudyCard(totalMinutes)
+            TotalStudyCard(totalSeconds)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -100,11 +109,11 @@ fun StatisticsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            DailyStatisticsCard(todayMinutes, todaySessions)
+            DailyStatisticsCard(todaySeconds, todaySessions)
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            WeeklyOverviewCard(weekMinutes)
+            WeeklyOverviewCard(weekSeconds)
         }
 
         StatisticsBottomNav(
@@ -116,7 +125,7 @@ fun StatisticsScreen(
 }
 
 @Composable
-fun TotalStudyCard(totalMinutes: Int) {
+fun TotalStudyCard(totalSeconds: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -142,33 +151,12 @@ fun TotalStudyCard(totalMinutes: Int) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = (totalMinutes / 60).toString(),
-                    color = Color.White,
-                    fontSize = 39.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-
-                Text(
-                    text = "h ",
-                    color = Color.White,
-                    fontSize = 25.sp
-                )
-
-                Text(
-                    text = (totalMinutes % 60).toString(),
-                    color = Color.White,
-                    fontSize = 39.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-
-                Text(
-                    text = "m",
-                    color = Color.White,
-                    fontSize = 25.sp
-                )
-            }
+            Text(
+                text = formatDuration(totalSeconds),
+                color = Color.White,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -228,7 +216,7 @@ fun MiniStat(
 }
 
 @Composable
-fun DailyStatisticsCard(todayMinutes: Int, todaySessions: Int) {
+fun DailyStatisticsCard(todaySeconds: Int, todaySessions: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -285,7 +273,7 @@ fun DailyStatisticsCard(todayMinutes: Int, todaySessions: Int) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Today", color = Color(0xFFAAA6BB), fontSize = 12.sp)
-                    Text(formatMinutes(todayMinutes), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(formatDuration(todaySeconds), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Text("🎯", fontSize = 28.sp)
@@ -346,7 +334,7 @@ fun ChartBar(day: String, height: Float) {
 }
 
 @Composable
-fun WeeklyOverviewCard(weekMinutes: Int) {
+fun WeeklyOverviewCard(weekSeconds: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -388,7 +376,7 @@ fun WeeklyOverviewCard(weekMinutes: Int) {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = formatMinutes(weekMinutes),
+                text = formatDuration(weekSeconds),
                 color = Color.White,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
@@ -468,13 +456,6 @@ fun BottomNavItemStats(
     }
 }
 
-
-fun formatMinutes(minutes: Int): String {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return "${hours}h ${mins}m"
-}
-
 fun parseBackendDate(dateString: String): Date? {
     return try {
         val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
@@ -539,4 +520,19 @@ fun isThisWeek(dateString: String?): Boolean {
     } catch (e: Exception) {
         false
     }
+}
+
+
+fun formatMinutes(totalMinutes: Int): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return "${hours}h ${minutes}m"
+}
+
+fun formatDuration(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return "${hours}h ${minutes}m ${seconds}s"
 }

@@ -139,7 +139,7 @@ fun SessionHistoryCard(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "${session.duration_minutes} min • ${session.status}",
+                    text = "${formatDuration(session.duration_seconds)} • ${session.status}",
                     color = Color(0xFFAAA6BB),
                     fontSize = 14.sp
                 )

@@ -92,6 +92,17 @@ fun HomeScreen(
         .filter { isToday(it.created_at) }
         .sumOf { it.duration_minutes }
 
+    val todaySeconds = sessions
+        .filter { isToday(it.created_at) }
+        .sumOf { it.duration_seconds }
+
+    val weekSeconds = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_seconds }
+
+    val totalSeconds = sessions
+        .sumOf { it.duration_seconds }
+
     val dailyGoal = goals.firstOrNull {
         it.goal_type.lowercase() == "daily"
     }
@@ -206,7 +217,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "▣",
                     title = "Today",
-                    value = formatMinutes(todayMinutes),
+                    value = formatHoursMinutes(todaySeconds),
                     subtitle = "Study Time",
                     color = Color(0xFF9B5CFF),
                     modifier = Modifier.weight(1f)
@@ -215,7 +226,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "▥",
                     title = "This Week",
-                    value = formatMinutes(weekMinutes),
+                    value = formatHoursMinutes(weekSeconds),
                     subtitle = "Study Time",
                     color = Color(0xFF36D979),
                     modifier = Modifier.weight(1f)
@@ -224,7 +235,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "◷",
                     title = "Total",
-                    value = formatMinutes(totalMinutes),
+                    value = formatHoursMinutes(totalSeconds),
                     subtitle = "All Time",
                     color = Color(0xFF3D8BFF),
                     modifier = Modifier.weight(1f)
@@ -300,7 +311,11 @@ fun HomeTopBar() {
 fun FocusMainCard(
     onStartSessionClick: () -> Unit
 ) {
-    var timeLeft by remember { mutableStateOf(25 * 60) }
+
+    var selectedDurationSeconds by remember { mutableStateOf(25 * 60) }
+    var timeLeft by remember { mutableStateOf(selectedDurationSeconds) }
+    var showDurationOptions by remember { mutableStateOf(false) }
+
     var isRunning by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -430,9 +445,47 @@ fun FocusMainCard(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
+                    .clickable {
+                        if (!isRunning) {
+                            showDurationOptions = !showDurationOptions
+                        }
+                    }
                     .background(Color(0xFF241D4A), RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp, vertical = 9.dp)
             )
+
+            if (showDurationOptions) {
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DurationOption("15m", 15 * 60, selectedDurationSeconds) {
+                        selectedDurationSeconds = it
+                        timeLeft = it
+                        showDurationOptions = false
+                    }
+
+                    DurationOption("25m", 25 * 60, selectedDurationSeconds) {
+                        selectedDurationSeconds = it
+                        timeLeft = it
+                        showDurationOptions = false
+                    }
+
+                    DurationOption("45m", 45 * 60, selectedDurationSeconds) {
+                        selectedDurationSeconds = it
+                        timeLeft = it
+                        showDurationOptions = false
+                    }
+
+                    DurationOption("60m", 60 * 60, selectedDurationSeconds) {
+                        selectedDurationSeconds = it
+                        timeLeft = it
+                        showDurationOptions = false
+                    }
+                }
+            }
+
         }
 
         Row(
@@ -476,11 +529,11 @@ fun FocusMainCard(
                     val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                     val endTime = formatter.format(Date())
 
-                    val studiedSeconds = (25 * 60) - timeLeft
-                    val studiedMinutes = if (studiedSeconds < 60) 1 else studiedSeconds / 60
+                    val studiedSeconds = selectedDurationSeconds - timeLeft
+                    val studiedMinutes = studiedSeconds / 60
 
                     isRunning = false
-                    timeLeft = 25 * 60
+                    timeLeft = selectedDurationSeconds
 
                     scope.launch {
                         try {
@@ -490,6 +543,7 @@ fun FocusMainCard(
                                     start_time = sessionStartTime ?: endTime,
                                     end_time = endTime,
                                     duration_minutes = studiedMinutes,
+                                    duration_seconds = studiedSeconds,
                                     status = "completed"
                                 )
                             )
@@ -963,3 +1017,47 @@ fun parseReminderTimeToMinutes(time: String?): Int? {
     }
 }
 
+
+
+@Composable
+fun DurationOption(
+    label: String,
+    seconds: Int,
+    selectedDurationSeconds: Int,
+    onClick: (Int) -> Unit
+) {
+    val isSelected = seconds == selectedDurationSeconds
+
+    Box(
+        modifier = Modifier
+            .clickable {
+                onClick(seconds)
+            }
+            .background(
+                if (isSelected) Color(0xFF9B5CFF) else Color(0xFF151A2E),
+                RoundedCornerShape(12.dp)
+            )
+            .border(
+                1.dp,
+                if (isSelected) Color(0xFFB56DFF) else Color(0xFF2A304C),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
+fun formatHoursMinutes(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+
+    return "${hours}h ${minutes}m"
+}
