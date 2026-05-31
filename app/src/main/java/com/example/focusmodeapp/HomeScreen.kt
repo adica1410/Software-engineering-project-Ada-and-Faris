@@ -46,19 +46,45 @@ fun HomeScreen(
 
     var reminders by remember { mutableStateOf<List<ReminderResponse>>(emptyList()) }
 
+    var sessions by remember {
+        mutableStateOf<List<SessionResponse>>(emptyList())
+    }
+
     LaunchedEffect(Unit) {
         try {
-            val response = RetrofitClient.api.getUserReminders(userId)
-            if (response.isSuccessful) {
-                reminders = response.body() ?: emptyList()
+
+            val reminderResponse =
+                RetrofitClient.api.getUserReminders(userId)
+
+            if (reminderResponse.isSuccessful) {
+                reminders = reminderResponse.body() ?: emptyList()
             }
+
+            val sessionResponse =
+                RetrofitClient.api.getUserSessions(userId)
+
+            if (sessionResponse.isSuccessful) {
+                sessions = sessionResponse.body() ?: emptyList()
+            }
+
         } catch (e: Exception) {
             reminders = emptyList()
+            sessions = emptyList()
         }
     }
 
     val latestReminder = reminders.firstOrNull()
 
+    val todayMinutes = sessions
+        .filter { isToday(it.created_at) }
+        .sumOf { it.duration_minutes }
+
+    val weekMinutes = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_minutes }
+
+    val totalMinutes = sessions
+        .sumOf { it.duration_minutes }
 
     Box(
         modifier = Modifier
@@ -144,7 +170,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "▣",
                     title = "Today",
-                    value = "2h 15m",
+                    value = formatMinutes(todayMinutes),
                     subtitle = "Study Time",
                     color = Color(0xFF9B5CFF),
                     modifier = Modifier.weight(1f)
@@ -153,7 +179,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "▥",
                     title = "This Week",
-                    value = "12h 0m",
+                    value = formatMinutes(weekMinutes),
                     subtitle = "Study Time",
                     color = Color(0xFF36D979),
                     modifier = Modifier.weight(1f)
@@ -162,7 +188,7 @@ fun HomeScreen(
                 StatCard(
                     icon = "◷",
                     title = "Total",
-                    value = "84h 30m",
+                    value = formatMinutes(totalMinutes),
                     subtitle = "All Time",
                     color = Color(0xFF3D8BFF),
                     modifier = Modifier.weight(1f)

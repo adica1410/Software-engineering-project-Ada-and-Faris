@@ -469,10 +469,10 @@ fun BottomNavItemStats(
 }
 
 
-fun formatMinutes(totalMinutes: Int): String {
-    val hours = totalMinutes / 60
-    val minutes = totalMinutes % 60
-    return "${hours}h ${minutes}m"
+fun formatMinutes(minutes: Int): String {
+    val hours = minutes / 60
+    val mins = minutes % 60
+    return "${hours}h ${mins}m"
 }
 
 fun parseBackendDate(dateString: String): Date? {
@@ -485,26 +485,58 @@ fun parseBackendDate(dateString: String): Date? {
     }
 }
 
-fun isToday(dateString: String): Boolean {
-    val date = parseBackendDate(dateString) ?: return false
+fun isToday(dateString: String?): Boolean {
+    if (dateString == null) return false
 
-    val sessionCalendar = Calendar.getInstance()
-    sessionCalendar.time = date
+    return try {
+        val sdf =
+            SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                Locale.getDefault()
+            )
 
-    val today = Calendar.getInstance()
+        val date = sdf.parse(dateString)
 
-    return sessionCalendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-            sessionCalendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+        val sessionCal = Calendar.getInstance()
+        sessionCal.time = date!!
+
+        val todayCal = Calendar.getInstance()
+
+        sessionCal.get(Calendar.YEAR) ==
+                todayCal.get(Calendar.YEAR)
+                &&
+                sessionCal.get(Calendar.DAY_OF_YEAR) ==
+                todayCal.get(Calendar.DAY_OF_YEAR)
+
+    } catch (e: Exception) {
+        false
+    }
 }
 
-fun isThisWeek(dateString: String): Boolean {
-    val date = parseBackendDate(dateString) ?: return false
+fun isThisWeek(dateString: String?): Boolean {
+    if (dateString == null) return false
 
-    val sessionCalendar = Calendar.getInstance()
-    sessionCalendar.time = date
+    return try {
+        val sdf =
+            SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                Locale.getDefault()
+            )
 
-    val today = Calendar.getInstance()
+        val date = sdf.parse(dateString)
 
-    return sessionCalendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-            sessionCalendar.get(Calendar.WEEK_OF_YEAR) == today.get(Calendar.WEEK_OF_YEAR)
+        val sessionCal = Calendar.getInstance()
+        sessionCal.time = date!!
+
+        val now = Calendar.getInstance()
+
+        sessionCal.get(Calendar.YEAR) ==
+                now.get(Calendar.YEAR)
+                &&
+                sessionCal.get(Calendar.WEEK_OF_YEAR) ==
+                now.get(Calendar.WEEK_OF_YEAR)
+
+    } catch (e: Exception) {
+        false
+    }
 }
