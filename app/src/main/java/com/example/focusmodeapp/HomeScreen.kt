@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
@@ -50,6 +51,10 @@ fun HomeScreen(
         mutableStateOf<List<SessionResponse>>(emptyList())
     }
 
+    var goals by remember {
+        mutableStateOf<List<GoalResponse>>(emptyList())
+    }
+
     LaunchedEffect(Unit) {
         try {
 
@@ -67,17 +72,48 @@ fun HomeScreen(
                 sessions = sessionResponse.body() ?: emptyList()
             }
 
+            val goalResponse =
+                RetrofitClient.api.getUserGoals(userId)
+
+            if (goalResponse.isSuccessful) {
+                goals = goalResponse.body() ?: emptyList()
+            }
+
         } catch (e: Exception) {
             reminders = emptyList()
             sessions = emptyList()
+            goals = emptyList()
         }
     }
 
-    val latestReminder = reminders.firstOrNull()
+    val latestReminder = getNextReminder(reminders)
 
     val todayMinutes = sessions
         .filter { isToday(it.created_at) }
         .sumOf { it.duration_minutes }
+
+    val dailyGoal = goals.firstOrNull {
+        it.goal_type.lowercase() == "daily"
+    }
+
+    val dailyGoalTargetMinutes = dailyGoal?.target_minutes ?: 0
+
+    val dailyGoalProgressPercent =
+        if (dailyGoalTargetMinutes > 0) {
+            ((todayMinutes.toFloat() / dailyGoalTargetMinutes.toFloat()) * 100)
+                .toInt()
+                .coerceAtMost(100)
+        } else {
+            0
+        }
+
+    val dailyGoalProgressFraction =
+        if (dailyGoalTargetMinutes > 0) {
+            (todayMinutes.toFloat() / dailyGoalTargetMinutes.toFloat())
+                .coerceAtMost(1f)
+        } else {
+            0f
+        }
 
     val weekMinutes = sessions
         .filter { isThisWeek(it.created_at) }
@@ -197,7 +233,12 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            DailyGoalCard()
+            DailyGoalCard(
+                goal = dailyGoal,
+                todayMinutes = todayMinutes,
+                progressPercent = dailyGoalProgressPercent,
+                progressFraction = dailyGoalProgressFraction
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -579,7 +620,14 @@ fun StatCard(
 }
 
 @Composable
-fun DailyGoalCard() {
+fun DailyGoalCard(
+    goal: GoalResponse?,
+    todayMinutes: Int,
+    progressPercent: Int,
+    progressFraction: Float
+) {
+    val targetMinutes = goal?.target_minutes ?: 0
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -599,14 +647,18 @@ fun DailyGoalCard() {
 
                     Column {
                         Text(
-                            text = "Daily Goal",
+                            text = goal?.title ?: "Daily Goal",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            text = "Study consistently every day",
+                            text = if (goal != null) {
+                                "Track today's study progress"
+                            } else {
+                                "Create a daily goal to track progress"
+                            },
                             color = Color(0xFFAAA6BB),
                             fontSize = 13.sp
                         )
@@ -614,7 +666,7 @@ fun DailyGoalCard() {
                 }
 
                 Text(
-                    text = "80%",
+                    text = "$progressPercent%",
                     color = Color(0xFF36D979),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -633,7 +685,7 @@ fun DailyGoalCard() {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(0.8f)
+                        .fillMaxWidth(progressFraction)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFF36D979))
                 )
@@ -646,7 +698,7 @@ fun DailyGoalCard() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "4h 0m / 5h 0m",
+                    text = "${formatMinutes(todayMinutes)} / ${formatMinutes(targetMinutes)}",
                     color = Color(0xFF36D979),
                     fontSize = 13.sp
                 )
@@ -857,3 +909,57 @@ fun BottomNavItem(
         )
     }
 }
+
+fun getNextReminder(reminders: List<ReminderResponse>): ReminderResponse? {
+    if (reminders.isEmpty()) return null
+
+    val now = Calendar.getInstance()
+    val currentMinutes =
+        now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+
+    val enabledReminders = reminders.filter { reminder ->
+        reminder.is_enabled == 1
+    }
+
+    if (enabledReminders.isEmpty()) return null
+
+    val futureReminders = enabledReminders.filter { reminder ->
+        val reminderMinutes =
+            parseReminderTimeToMinutes(reminder.reminder_time)
+
+        reminderMinutes != null && reminderMinutes >= currentMinutes
+    }
+
+    return if (futureReminders.isNotEmpty()) {
+        futureReminders.minBy { reminder ->
+            parseReminderTimeToMinutes(reminder.reminder_time) ?: Int.MAX_VALUE
+        }
+    } else {
+        enabledReminders.minBy { reminder ->
+            parseReminderTimeToMinutes(reminder.reminder_time) ?: Int.MAX_VALUE
+        }
+    }
+}
+
+
+fun parseReminderTimeToMinutes(time: String?): Int? {
+    if (time.isNullOrBlank()) return null
+
+    return try {
+        val cleanTime = time.trim()
+
+        val parts = cleanTime.split(":")
+        if (parts.size < 2) return null
+
+        val hour = parts[0].toInt()
+        val minute = parts[1].take(2).toInt()
+
+        if (hour !in 0..23 || minute !in 0..59) return null
+
+        hour * 60 + minute
+
+    } catch (e: Exception) {
+        null
+    }
+}
+
