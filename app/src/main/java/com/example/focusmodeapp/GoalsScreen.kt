@@ -46,9 +46,17 @@ fun GoalsScreen(
 
     var databaseGoals by remember { mutableStateOf<List<StudyGoal>>(emptyList()) }
 
+    var sessions by remember { mutableStateOf<List<SessionResponse>>(emptyList()) }
+
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.api.getUserGoals(userId)
+
+            val sessionResponse = RetrofitClient.api.getUserSessions(userId)
+
+            if (sessionResponse.isSuccessful) {
+                sessions = sessionResponse.body() ?: emptyList()
+            }
 
             if (response.isSuccessful) {
                 databaseGoals = response.body()?.map { goal ->
@@ -71,6 +79,14 @@ fun GoalsScreen(
 
     val dailyGoal = databaseGoals.firstOrNull { it.type == "Daily" }
     val weeklyGoal = databaseGoals.firstOrNull { it.type == "Weekly" }
+
+    val todaySeconds = sessions
+        .filter { isToday(it.created_at) }
+        .sumOf { it.duration_seconds }
+
+    val weekSeconds = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_seconds }
 
     Box(
         modifier = Modifier
@@ -123,6 +139,7 @@ fun GoalsScreen(
 
                     GoalsDailyGoalCard(
                         goal = it,
+                        completedSeconds = todaySeconds,
                         onEditGoal = onEditGoal,
                         onAddStudyTime = onAddStudyTime,
                         onDeleteGoal = onDeleteGoal
@@ -135,6 +152,7 @@ fun GoalsScreen(
 
                     GoalsWeeklyGoalCard(
                         goal = it,
+                        completedSeconds = weekSeconds,
                         onEditGoal = onEditGoal,
                         onAddStudyTime = onAddStudyTime,
                         onDeleteGoal = onDeleteGoal
@@ -160,18 +178,21 @@ fun GoalsScreen(
 @Composable
 fun GoalsDailyGoalCard(
     goal: StudyGoal,
+    completedSeconds: Int,
     onEditGoal: (StudyGoal) -> Unit,
     onAddStudyTime: (StudyGoal) -> Unit,
     onDeleteGoal: (StudyGoal) -> Unit
 ) {
     val context = LocalContext.current
     val targetMinutes = goal.hours * 60 + goal.minutes
-    val completedMinutes = goal.completedHours * 60 + goal.completedMinutes
-    val progressFloat = if (targetMinutes == 0) 0f else (completedMinutes.toFloat() / targetMinutes).coerceIn(0f, 1f)
-    val progressPercent = (progressFloat * 100).toInt()
-    val remainingMinutes = (targetMinutes - completedMinutes).coerceAtLeast(0)
-    val remainingHours = remainingMinutes / 60
-    val remainingMins = remainingMinutes % 60
+    val targetSeconds = targetMinutes * 60
+    val progressFloat = if (targetSeconds == 0) 0f else (completedSeconds.toFloat() / targetSeconds).coerceIn(0f, 1f)
+    val progressPercent = if (completedSeconds > 0 && progressFloat > 0f) {
+        (progressFloat * 100).toInt().coerceAtLeast(1)
+    } else {
+        0
+    }
+    val remainingSeconds = (targetSeconds - completedSeconds).coerceAtLeast(0)
 
     Card(
         modifier = Modifier
@@ -243,8 +264,8 @@ fun GoalsDailyGoalCard(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     GoalsInfo("Goal", formatGoalTime(goal.hours, goal.minutes))
-                    GoalsInfo("Completed", formatGoalTime(goal.completedHours, goal.completedMinutes))
-                    GoalsInfo("Remaining", formatGoalTime(remainingHours, remainingMins))
+                    GoalsInfo("Completed", formatDuration(completedSeconds))
+                    GoalsInfo("Remaining", formatDuration(remainingSeconds))
                 }
             }
 
@@ -257,19 +278,6 @@ fun GoalsDailyGoalCard(
                 trackColor = Color(0xFF1E293B)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF123322))
-                    .clickable { onAddStudyTime(goal) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("+ Add 1h Study Time", color = Color(0xFF4ADE80), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
@@ -277,17 +285,28 @@ fun GoalsDailyGoalCard(
 @Composable
 fun GoalsWeeklyGoalCard(
     goal: StudyGoal,
+    completedSeconds: Int,
     onEditGoal: (StudyGoal) -> Unit,
     onAddStudyTime: (StudyGoal) -> Unit,
     onDeleteGoal: (StudyGoal) -> Unit
 ) {
     val targetMinutes = goal.hours * 60 + goal.minutes
-    val completedMinutes = goal.completedHours * 60 + goal.completedMinutes
-    val progressFloat = if (targetMinutes == 0) 0f else (completedMinutes.toFloat() / targetMinutes).coerceIn(0f, 1f)
-    val progressPercent = (progressFloat * 100).toInt()
-    val remainingMinutes = (targetMinutes - completedMinutes).coerceAtLeast(0)
-    val remainingHours = remainingMinutes / 60
-    val remainingMins = remainingMinutes % 60
+    val targetSeconds = targetMinutes * 60
+
+    val progressFloat =
+        if (targetSeconds == 0) 0f
+        else (completedSeconds.toFloat() / targetSeconds.toFloat())
+            .coerceIn(0f, 1f)
+
+    val progressPercent =
+        if (completedSeconds > 0 && progressFloat > 0f) {
+            (progressFloat * 100).toInt().coerceAtLeast(1)
+        } else {
+            0
+        }
+
+    val remainingSeconds =
+        (targetSeconds - completedSeconds).coerceAtLeast(0)
 
     Card(
         modifier = Modifier
@@ -345,7 +364,7 @@ fun GoalsWeeklyGoalCard(
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(formatGoalTime(goal.completedHours, goal.completedMinutes), color = Color(0xFF9B5CFF), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(formatDuration(completedSeconds), color = Color(0xFF9B5CFF), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text("of ${formatGoalTime(goal.hours, goal.minutes)}", color = Color(0xFF9CA3AF), fontSize = 12.sp)
                 }
             }
@@ -365,23 +384,10 @@ fun GoalsWeeklyGoalCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                GoalsSmallStat("◷", "Remaining", formatGoalTime(remainingHours, remainingMins), Modifier.weight(1f))
+                GoalsSmallStat("◷", "Remaining", formatDuration(remainingSeconds), Modifier.weight(1f))
                 GoalsSmallStat("♢", "Reminder", if (goal.reminderEnabled) goal.reminderTime else "Off", Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF171038))
-                    .clickable { onAddStudyTime(goal) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("+ Add 1h Study Time", color = Color(0xFFB56DFF), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
