@@ -314,16 +314,17 @@ app.post("/sessions", (req, res) => {
     start_time,
     end_time = null,
     duration_minutes = 0,
+    duration_seconds = 0,
     status = "active"
   } = req.body;
 
   const sql = `
     INSERT INTO focus_sessions
-    (user_id, start_time, end_time, duration_minutes, status)
-    VALUES (?, ?, ?, ?, ?)
+    (user_id, start_time, end_time, duration_minutes, duration_seconds, status)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(sql, [user_id, start_time, end_time, duration_minutes, status], (err, result) => {
+  db.query(sql, [user_id, start_time, end_time, duration_minutes, duration_seconds, status], (err, result) => {
     if (err) {
       return res.status(500).json({ message: "Error creating session", error: err.message });
     }
