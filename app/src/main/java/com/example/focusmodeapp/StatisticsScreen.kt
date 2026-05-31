@@ -43,7 +43,25 @@ fun StatisticsScreen(
 
     val totalMinutes = sessions.sumOf { it.duration_minutes }
     val totalSeconds = sessions.sumOf { it.duration_seconds }
+
+    val weekSeconds = sessions
+        .filter { isThisWeek(it.created_at) }
+        .sumOf { it.duration_seconds }
+
+    val dailySecondsForWeek = getDailySecondsForCurrentWeek(sessions)
+
+    val lastWeekSeconds = sessions
+        .filter { isLastWeek(it.created_at) }
+        .sumOf { it.duration_seconds }
+
+    val weekChangeText = calculateWeekChangeText(
+        currentWeekSeconds = weekSeconds,
+        lastWeekSeconds = lastWeekSeconds
+    )
+
     val completedSessions = sessions.count { it.status == "completed" }
+
+    val focusScore = calculateWeeklyFocusScore(weekSeconds)
 
     val currentStreak = calculateCurrentStreak(sessions)
 
@@ -62,9 +80,6 @@ fun StatisticsScreen(
         .filter { isThisWeek(it.created_at) }
         .sumOf { it.duration_minutes }
 
-    val weekSeconds = sessions
-        .filter { isThisWeek(it.created_at) }
-        .sumOf { it.duration_seconds }
 
     Box(
         modifier = Modifier
@@ -96,7 +111,7 @@ fun StatisticsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            TotalStudyCard(totalSeconds)
+            TotalStudyCard(totalSeconds, weekChangeText)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -105,17 +120,25 @@ fun StatisticsScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 MiniStat("⏱", completedSessions.toString(), "Completed\nSessions", Modifier.weight(1f))
-                MiniStat("🎯", "92%", "Focus\nScore", Modifier.weight(1f))
+                MiniStat("🎯", "$focusScore%", "Weekly\nScore", Modifier.weight(1f))
                 MiniStat("🔥", currentStreak.toString(), "Day\nStreak", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            DailyStatisticsCard(todaySeconds, todaySessions)
+            DailyStatisticsCard(
+                todaySeconds = todaySeconds,
+                todaySessions = todaySessions,
+                dailySecondsForWeek = dailySecondsForWeek
+            )
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            WeeklyOverviewCard(weekSeconds)
+            WeeklyOverviewCard(
+                weekSeconds = weekSeconds,
+                weekChangeText = weekChangeText,
+                dailySecondsForWeek = dailySecondsForWeek
+            )
         }
 
         AppBottomNavigationBar(
@@ -129,7 +152,10 @@ fun StatisticsScreen(
 }
 
 @Composable
-fun TotalStudyCard(totalSeconds: Int) {
+fun TotalStudyCard(
+    totalSeconds: Int,
+    weekChangeText: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -165,7 +191,7 @@ fun TotalStudyCard(totalSeconds: Int) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "↗ 12% vs last week",
+                text = weekChangeText,
                 color = Color(0xFF47E28A),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -220,7 +246,11 @@ fun MiniStat(
 }
 
 @Composable
-fun DailyStatisticsCard(todaySeconds: Int, todaySessions: Int) {
+fun DailyStatisticsCard(
+    todaySeconds: Int,
+    todaySessions: Int,
+    dailySecondsForWeek: List<Int>
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -259,7 +289,7 @@ fun DailyStatisticsCard(todaySeconds: Int, todaySessions: Int) {
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            SimpleBarChart()
+            SimpleBarChart(dailySecondsForWeek)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -294,7 +324,11 @@ fun DailyStatisticsCard(todaySeconds: Int, todaySessions: Int) {
 }
 
 @Composable
-fun SimpleBarChart() {
+fun SimpleBarChart(dailySecondsForWeek: List<Int>) {
+    val maxSeconds = dailySecondsForWeek.maxOrNull() ?: 0
+
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -302,13 +336,17 @@ fun SimpleBarChart() {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.Bottom
     ) {
-        ChartBar("Mon", 0.45f)
-        ChartBar("Tue", 0.70f)
-        ChartBar("Wed", 0.92f)
-        ChartBar("Thu", 0.50f)
-        ChartBar("Fri", 0.72f)
-        ChartBar("Sat", 0.40f)
-        ChartBar("Sun", 0.82f)
+        days.forEachIndexed { index, day ->
+            val seconds = dailySecondsForWeek.getOrElse(index) { 0 }
+
+            val height = if (maxSeconds > 0) {
+                (seconds.toFloat() / maxSeconds.toFloat()).coerceAtLeast(0.12f)
+            } else {
+                0.12f
+            }
+
+            ChartBar(day, height)
+        }
     }
 }
 
@@ -338,11 +376,18 @@ fun ChartBar(day: String, height: Float) {
 }
 
 @Composable
-fun WeeklyOverviewCard(weekSeconds: Int) {
+fun WeeklyOverviewCard(
+    weekSeconds: Int,
+    weekChangeText: String,
+    dailySecondsForWeek: List<Int>
+) {
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val maxSeconds = dailySecondsForWeek.maxOrNull() ?: 0
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(390.dp)
             .background(Color(0xFF0D1326), RoundedCornerShape(18.dp))
             .border(0.8.dp, Color(0xFF222A45), RoundedCornerShape(18.dp))
             .padding(18.dp)
@@ -360,7 +405,7 @@ fun WeeklyOverviewCard(weekSeconds: Int) {
                 )
 
                 Text(
-                    text = "This Week  ⌄",
+                    text = "This Week",
                     color = Color(0xFFB6B1C9),
                     fontSize = 13.sp,
                     modifier = Modifier
@@ -369,7 +414,7 @@ fun WeeklyOverviewCard(weekSeconds: Int) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "Study Time",
@@ -389,21 +434,86 @@ fun WeeklyOverviewCard(weekSeconds: Int) {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "↗ 18% vs last week",
+                text = weekChangeText,
                 color = Color(0xFF47E28A),
                 fontSize = 13.sp
             )
 
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
-            Text(
-                text = "Mon     Tue     Wed     Thu     Fri     Sat     Sun",
-                color = Color(0xFFAAA6BB),
-                fontSize = 12.sp
-            )
+            days.forEachIndexed { index, day ->
+                val seconds = dailySecondsForWeek.getOrElse(index) { 0 }
+
+                WeeklyDayRow(
+                    day = day,
+                    seconds = seconds,
+                    maxSeconds = maxSeconds
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
         }
     }
 }
+
+
+@Composable
+fun WeeklyDayRow(
+    day: String,
+    seconds: Int,
+    maxSeconds: Int
+) {
+    val progress = if (maxSeconds > 0) {
+        (seconds.toFloat() / maxSeconds.toFloat()).coerceAtLeast(0.03f)
+    } else {
+        0.03f
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = day,
+            color = Color(0xFFB6B1C9),
+            fontSize = 12.sp,
+            modifier = Modifier.width(36.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(8.dp)
+                .background(Color(0xFF20263A), RoundedCornerShape(20.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(progress)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF9B5CFF),
+                                Color(0xFF6F2CFF)
+                            )
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = formatDuration(seconds),
+            color = Color.White,
+            fontSize = 12.sp,
+            modifier = Modifier.width(82.dp)
+        )
+    }
+}
+
+
 
 @Composable
 fun StatisticsBottomNav(
@@ -578,4 +688,109 @@ fun calculateCurrentStreak(sessions: List<SessionResponse>): Int {
     }
 
     return streak
+}
+
+fun calculateWeeklyFocusScore(
+    weekSeconds: Int
+): Int {
+
+    val weekMinutes = weekSeconds / 60
+
+    return when {
+        weekMinutes >= 600 -> 100
+        weekMinutes >= 480 -> 90
+        weekMinutes >= 360 -> 80
+        weekMinutes >= 240 -> 70
+        weekMinutes >= 120 -> 60
+        weekMinutes >= 60 -> 40
+        weekMinutes >= 30 -> 20
+        weekMinutes > 0 -> 10
+        else -> 0
+    }
+}
+
+
+fun isLastWeek(dateString: String?): Boolean {
+    if (dateString == null) return false
+
+    return try {
+        val sdf = SimpleDateFormat(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            Locale.getDefault()
+        )
+
+        val date = sdf.parse(dateString)
+
+        val sessionCal = Calendar.getInstance()
+        sessionCal.time = date!!
+
+        val lastWeekCal = Calendar.getInstance()
+        lastWeekCal.add(Calendar.WEEK_OF_YEAR, -1)
+
+        sessionCal.get(Calendar.YEAR) == lastWeekCal.get(Calendar.YEAR) &&
+                sessionCal.get(Calendar.WEEK_OF_YEAR) == lastWeekCal.get(Calendar.WEEK_OF_YEAR)
+
+    } catch (e: Exception) {
+        false
+    }
+}
+
+
+
+fun calculateWeekChangeText(
+    currentWeekSeconds: Int,
+    lastWeekSeconds: Int
+): String {
+    if (lastWeekSeconds == 0 && currentWeekSeconds == 0) {
+        return "No study data yet"
+    }
+
+    if (lastWeekSeconds == 0 && currentWeekSeconds > 0) {
+        return "↗ New activity this week"
+    }
+
+    val changePercent =
+        (((currentWeekSeconds - lastWeekSeconds).toFloat() / lastWeekSeconds.toFloat()) * 100).toInt()
+
+    return if (changePercent >= 0) {
+        "↗ ${changePercent}% vs last week"
+    } else {
+        "↘ ${kotlin.math.abs(changePercent)}% vs last week"
+    }
+}
+
+
+fun getDailySecondsForCurrentWeek(
+    sessions: List<SessionResponse>
+): List<Int> {
+    val dailySeconds = MutableList(7) { 0 }
+
+    sessions
+        .filter { it.status == "completed" }
+        .filter { isThisWeek(it.created_at) }
+        .forEach { session ->
+            val date = parseBackendDate(session.created_at)
+
+            if (date != null) {
+                val calendar = Calendar.getInstance()
+                calendar.time = date
+
+                val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+
+                val index = when (dayOfWeek) {
+                    Calendar.MONDAY -> 0
+                    Calendar.TUESDAY -> 1
+                    Calendar.WEDNESDAY -> 2
+                    Calendar.THURSDAY -> 3
+                    Calendar.FRIDAY -> 4
+                    Calendar.SATURDAY -> 5
+                    Calendar.SUNDAY -> 6
+                    else -> 0
+                }
+
+                dailySeconds[index] += session.duration_seconds
+            }
+        }
+
+    return dailySeconds
 }
