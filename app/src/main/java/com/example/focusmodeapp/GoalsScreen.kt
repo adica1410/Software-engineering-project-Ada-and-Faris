@@ -147,9 +147,9 @@ fun GoalsScreen(
             }
         }
 
-        GoalsBottomNavigationBar(
+        AppBottomNavigationBar(
             modifier = Modifier.align(Alignment.BottomCenter),
-            selected = "Goals",
+            selectedScreen = "Goals",
             onHomeClick = onHomeClick,
             onStatisticsClick = onStatisticsClick,
             onGoalsClick = onGoalsClick

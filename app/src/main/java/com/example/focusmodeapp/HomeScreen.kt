@@ -107,20 +107,22 @@ fun HomeScreen(
         it.goal_type.lowercase() == "daily"
     }
 
-    val dailyGoalTargetMinutes = dailyGoal?.target_minutes ?: 0
+    val dailyGoalTargetSeconds = (dailyGoal?.target_minutes ?: 0) * 60
 
     val dailyGoalProgressPercent =
-        if (dailyGoalTargetMinutes > 0) {
-            ((todayMinutes.toFloat() / dailyGoalTargetMinutes.toFloat()) * 100)
+        if (dailyGoalTargetSeconds > 0 && todaySeconds > 0) {
+            ((todaySeconds.toFloat() / dailyGoalTargetSeconds.toFloat()) * 100)
                 .toInt()
+                .coerceAtLeast(1)
                 .coerceAtMost(100)
         } else {
             0
         }
 
     val dailyGoalProgressFraction =
-        if (dailyGoalTargetMinutes > 0) {
-            (todayMinutes.toFloat() / dailyGoalTargetMinutes.toFloat())
+        if (dailyGoalTargetSeconds > 0 && todaySeconds > 0) {
+            (todaySeconds.toFloat() / dailyGoalTargetSeconds.toFloat())
+                .coerceAtLeast(0.02f)
                 .coerceAtMost(1f)
         } else {
             0f
@@ -246,7 +248,7 @@ fun HomeScreen(
 
             DailyGoalCard(
                 goal = dailyGoal,
-                todayMinutes = todayMinutes,
+                todaySeconds = todaySeconds,
                 progressPercent = dailyGoalProgressPercent,
                 progressFraction = dailyGoalProgressFraction
             )
@@ -269,8 +271,10 @@ fun HomeScreen(
             ReminderCard(latestReminder)
         }
 
-        BottomNavigationBar(
+        AppBottomNavigationBar(
             modifier = Modifier.align(Alignment.BottomCenter),
+            selectedScreen = "Home",
+            onHomeClick = {},
             onStatisticsClick = onStatisticsClick,
             onGoalsClick = onGoalsClick
         )
@@ -676,7 +680,7 @@ fun StatCard(
 @Composable
 fun DailyGoalCard(
     goal: GoalResponse?,
-    todayMinutes: Int,
+    todaySeconds: Int,
     progressPercent: Int,
     progressFraction: Float
 ) {
@@ -752,7 +756,7 @@ fun DailyGoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${formatMinutes(todayMinutes)} / ${formatMinutes(targetMinutes)}",
+                    text = "${formatDuration(todaySeconds)} / ${formatHoursMinutes(targetMinutes * 60)}",
                     color = Color(0xFF36D979),
                     fontSize = 13.sp
                 )

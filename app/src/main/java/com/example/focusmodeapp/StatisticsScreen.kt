@@ -116,9 +116,11 @@ fun StatisticsScreen(
             WeeklyOverviewCard(weekSeconds)
         }
 
-        StatisticsBottomNav(
+        AppBottomNavigationBar(
             modifier = Modifier.align(Alignment.BottomCenter),
+            selectedScreen = "Statistics",
             onHomeClick = onHomeClick,
+            onStatisticsClick = {},
             onGoalsClick = onGoalsClick
         )
     }
