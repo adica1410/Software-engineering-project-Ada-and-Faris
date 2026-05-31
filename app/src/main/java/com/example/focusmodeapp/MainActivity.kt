@@ -117,6 +117,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onGoalsClick = {
                         currentScreen = "goals"
+                    },
+                    onBadgesClick = {
+                        currentScreen = "badges"
                     }
                 )
 
@@ -176,6 +179,13 @@ class MainActivity : ComponentActivity() {
                         currentScreen = "createGoal"
                     }
                 )
+
+                "badges" -> BadgesScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
 
                 "createGoal" -> CreateGoalScreen(
                     goalToEdit = editingGoal,

@@ -28,7 +28,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     onStartSessionClick: () -> Unit,
     onStatisticsClick: () -> Unit,
-    onGoalsClick: () -> Unit
+    onGoalsClick: () -> Unit,
+    onBadgesClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -175,7 +176,10 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 PomodoroCard(Modifier.weight(1f))
-                StreakCard(Modifier.weight(1f))
+                StreakCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = onBadgesClick
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -672,10 +676,14 @@ fun PomodoroCard(modifier: Modifier) {
 }
 
 @Composable
-fun StreakCard(modifier: Modifier) {
+fun StreakCard(
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
     Box(
         modifier = modifier
             .height(160.dp)
+            .clickable { onClick() }
             .background(Color(0xFF17151D), RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {

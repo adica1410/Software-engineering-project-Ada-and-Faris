@@ -48,4 +48,9 @@ interface ApiService {
     suspend fun getUserReminders(
         @Path("userId") userId: Int
     ): Response<List<ReminderResponse>>
+
+    @GET("badges/user/{userId}")
+    suspend fun getUserBadges(
+        @Path("userId") userId: Int
+    ): Response<List<BadgeResponse>>
 }
