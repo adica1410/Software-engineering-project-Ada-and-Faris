@@ -45,6 +45,8 @@ fun StatisticsScreen(
     val totalSeconds = sessions.sumOf { it.duration_seconds }
     val completedSessions = sessions.count { it.status == "completed" }
 
+    val currentStreak = calculateCurrentStreak(sessions)
+
     val todayMinutes = sessions
         .filter { isToday(it.created_at) }
         .sumOf { it.duration_minutes }
@@ -104,7 +106,7 @@ fun StatisticsScreen(
             ) {
                 MiniStat("⏱", completedSessions.toString(), "Completed\nSessions", Modifier.weight(1f))
                 MiniStat("🎯", "92%", "Focus\nScore", Modifier.weight(1f))
-                MiniStat("🔥", "7", "Day\nStreak", Modifier.weight(1f))
+                MiniStat("🔥", currentStreak.toString(), "Day\nStreak", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -537,4 +539,43 @@ fun formatDuration(totalSeconds: Int): String {
     val seconds = totalSeconds % 60
 
     return "${hours}h ${minutes}m ${seconds}s"
+}
+
+
+fun calculateCurrentStreak(sessions: List<SessionResponse>): Int {
+    val completedSessionDates = sessions
+        .filter { it.status == "completed" }
+        .mapNotNull { session ->
+            parseBackendDate(session.created_at)
+        }
+        .map { date ->
+            val calendar = Calendar.getInstance()
+            calendar.time = date
+
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+
+            calendar.timeInMillis
+        }
+        .toSet()
+
+    if (completedSessionDates.isEmpty()) return 0
+
+    val today = Calendar.getInstance()
+    today.set(Calendar.HOUR_OF_DAY, 0)
+    today.set(Calendar.MINUTE, 0)
+    today.set(Calendar.SECOND, 0)
+    today.set(Calendar.MILLISECOND, 0)
+
+    var streak = 0
+    val checkDay = today.clone() as Calendar
+
+    while (completedSessionDates.contains(checkDay.timeInMillis)) {
+        streak++
+        checkDay.add(Calendar.DAY_OF_YEAR, -1)
+    }
+
+    return streak
 }

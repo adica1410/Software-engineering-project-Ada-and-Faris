@@ -103,6 +103,8 @@ fun HomeScreen(
     val totalSeconds = sessions
         .sumOf { it.duration_seconds }
 
+    val currentStreak = calculateCurrentStreak(sessions)
+
     val dailyGoal = goals.firstOrNull {
         it.goal_type.lowercase() == "daily"
     }
@@ -262,6 +264,7 @@ fun HomeScreen(
                 PomodoroCard(Modifier.weight(1f))
                 StreakCard(
                     modifier = Modifier.weight(1f),
+                    streakDays = currentStreak,
                     onClick = onBadgesClick
                 )
             }
@@ -818,6 +821,7 @@ fun PomodoroCard(modifier: Modifier) {
 @Composable
 fun StreakCard(
     modifier: Modifier,
+    streakDays: Int,
     onClick: () -> Unit
 ) {
     Box(
@@ -846,7 +850,7 @@ fun StreakCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "7",
+                text = streakDays.toString(),
                 color = Color(0xFFFFA23D),
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
