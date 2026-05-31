@@ -5,6 +5,8 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.DELETE
+
 interface ApiService {
 
     @POST("register")
@@ -26,4 +28,19 @@ interface ApiService {
     suspend fun getUserSessions(
         @Path("userId") userId: Int
     ): Response<List<SessionResponse>>
+
+    @POST("goals")
+    suspend fun createGoal(
+        @Body request: GoalRequest
+    ): Response<GoalResponse>
+
+    @GET("goals/user/{userId}")
+    suspend fun getUserGoals(
+        @Path("userId") userId: Int
+    ): Response<List<GoalResponse>>
+
+    @DELETE("goals/{id}")
+    suspend fun deleteGoal(
+        @Path("id") id: Int
+    ): Response<Any>
 }

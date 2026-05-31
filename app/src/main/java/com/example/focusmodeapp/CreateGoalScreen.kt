@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
+import android.widget.Toast
+import kotlinx.coroutines.launch
 
 @Composable
 fun CreateGoalScreen(
@@ -42,6 +44,16 @@ fun CreateGoalScreen(
     var selectedTime by remember { mutableStateOf(goalToEdit?.reminderTime ?: "8:00 PM") }
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    val userId = prefs.getInt("userId", 1)
+    var isSaving by remember { mutableStateOf(false) }
+
     val calendar = Calendar.getInstance()
 
     Column(
@@ -354,6 +366,8 @@ fun CreateGoalScreen(
                     RoundedCornerShape(13.dp)
                 )
                 .clickable {
+                    if (isSaving) return@clickable
+
                     val finalGoalName =
                         if (goalName.isBlank()) {
                             "Study ${hours.toInt()}h ${String.format("%02d", minutes.toInt())}m"
@@ -361,21 +375,56 @@ fun CreateGoalScreen(
                             goalName
                         }
 
-                    val newGoal = StudyGoal(
-                        name = finalGoalName,
-                        type = selectedTab,
-                        hours = hours.toInt(),
-                        minutes = minutes.toInt(),
-                        reminderEnabled = reminderEnabled,
-                        reminderTime = selectedTime
-                    )
+                    val targetMinutes = (hours.toInt() * 60) + minutes.toInt()
 
-                    onSaveGoalClick(newGoal)
+                    if (targetMinutes <= 0) {
+                        Toast.makeText(context, "Goal time must be greater than 0", Toast.LENGTH_SHORT).show()
+                        return@clickable
+                    }
+
+                    scope.launch {
+                        isSaving = true
+
+                        try {
+                            val response = RetrofitClient.api.createGoal(
+                                GoalRequest(
+                                    user_id = userId,
+                                    title = finalGoalName,
+                                    goal_type = selectedTab,
+                                    target_minutes = targetMinutes
+                                )
+                            )
+
+                            if (response.isSuccessful) {
+                                val createdGoal = response.body()
+
+                                val newGoal = StudyGoal(
+                                    name = createdGoal?.title ?: finalGoalName,
+                                    type = createdGoal?.goal_type ?: selectedTab,
+                                    hours = (createdGoal?.target_minutes ?: targetMinutes) / 60,
+                                    minutes = (createdGoal?.target_minutes ?: targetMinutes) % 60,
+                                    completedHours = (createdGoal?.current_minutes ?: 0) / 60,
+                                    completedMinutes = (createdGoal?.current_minutes ?: 0) % 60,
+                                    reminderEnabled = reminderEnabled,
+                                    reminderTime = selectedTime
+                                )
+
+                                Toast.makeText(context, "Goal saved successfully!", Toast.LENGTH_SHORT).show()
+                                onSaveGoalClick(newGoal)
+                            } else {
+                                Toast.makeText(context, "Failed to save goal", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isSaving = false
+                        }
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (goalToEdit == null) "✓ Save Goal" else "✓ Save Changes",
+                text = if (isSaving) "Saving..." else if (goalToEdit == null) "✓ Save Goal" else "✓ Save Changes",
                 color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold

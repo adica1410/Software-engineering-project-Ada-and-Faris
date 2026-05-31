@@ -9,7 +9,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +33,45 @@ fun GoalsScreen(
     onGoalsClick: () -> Unit,
     onCreateGoalClick: () -> Unit
 ) {
-    val dailyGoal = savedGoals.lastOrNull { it.type == "Daily" }
-    val weeklyGoal = savedGoals.lastOrNull { it.type == "Weekly" }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    val userId = prefs.getInt("userId", 1)
+
+    var databaseGoals by remember { mutableStateOf<List<StudyGoal>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.api.getUserGoals(userId)
+
+            if (response.isSuccessful) {
+                databaseGoals = response.body()?.map { goal ->
+                    StudyGoal(
+                        name = goal.title,
+                        type = goal.goal_type,
+                        hours = goal.target_minutes / 60,
+                        minutes = goal.target_minutes % 60,
+                        completedHours = goal.current_minutes / 60,
+                        completedMinutes = goal.current_minutes % 60,
+                        reminderEnabled = true,
+                        reminderTime = "8:00 PM"
+                    )
+                } ?: emptyList()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to load goals", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val dailyGoal = databaseGoals.firstOrNull { it.type == "Daily" }
+    val weeklyGoal = databaseGoals.firstOrNull { it.type == "Weekly" }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

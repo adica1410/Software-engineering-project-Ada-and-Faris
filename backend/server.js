@@ -90,6 +90,92 @@ app.post("/login", (req, res) => {
 });
 
 
+// CREATE goal
+app.post("/goals", (req, res) => {
+  const {
+    user_id,
+    title,
+    goal_type,
+    target_minutes,
+    current_minutes = 0
+  } = req.body;
+
+  if (!user_id || !title || !goal_type || !target_minutes) {
+    return res.status(400).json({
+      message: "user_id, title, goal_type and target_minutes are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO study_goals
+    (user_id, title, goal_type, target_minutes, current_minutes)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [user_id, title, goal_type, target_minutes, current_minutes],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error creating goal",
+          error: err.message
+        });
+      }
+
+      res.status(201).json({
+        id: result.insertId,
+        user_id,
+        title,
+        goal_type,
+        target_minutes,
+        current_minutes
+      });
+    }
+  );
+});
+
+// READ goals by user
+app.get("/goals/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM study_goals
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching goals",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+// DELETE goal
+app.delete("/goals/:id", (req, res) => {
+  const sql = "DELETE FROM study_goals WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error deleting goal",
+        error: err.message
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Goal not found" });
+    }
+
+    res.json({ message: "Goal deleted successfully" });
+  });
+});
+
+
 // CREATE session
 app.post("/sessions", (req, res) => {
   const {
