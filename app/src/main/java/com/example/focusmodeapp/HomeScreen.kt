@@ -6,7 +6,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +17,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -23,6 +30,16 @@ fun HomeScreen(
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    val fullName = prefs.getString("fullName", "User") ?: "User"
+    val firstName = fullName.split(" ").firstOrNull() ?: fullName
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -49,7 +66,7 @@ fun HomeScreen(
 
             Row {
                 Text(
-                    text = "Ada! ",
+                    text = "$firstName! ",
                     color = Color(0xFF9B5CFF),
                     fontSize = 27.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -190,6 +207,31 @@ fun HomeTopBar() {
 fun FocusMainCard(
     onStartSessionClick: () -> Unit
 ) {
+    var timeLeft by remember { mutableStateOf(25 * 60) }
+    var isRunning by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    val userId = prefs.getInt("userId", 1)
+
+    var sessionStartTime by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(isRunning, timeLeft) {
+        if (isRunning && timeLeft > 0) {
+            delay(1000)
+            timeLeft--
+        }
+    }
+
+    val minutes = timeLeft / 60
+    val seconds = timeLeft % 60
+    val formattedTime = "%02d:%02d".format(minutes, seconds)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -281,7 +323,7 @@ fun FocusMainCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "25:00",
+                text = formattedTime,
                 color = Color.White,
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Light
@@ -311,7 +353,10 @@ fun FocusMainCard(
                 icon = "Ⅱ",
                 label = "Pause",
                 active = false,
-                iconColor = Color.White
+                iconColor = Color.White,
+                onStartSessionClick = {
+                    isRunning = false
+                }
             )
 
             TimerButton(
@@ -319,14 +364,53 @@ fun FocusMainCard(
                 label = "Start",
                 active = true,
                 iconColor = Color.White,
-                onStartSessionClick = onStartSessionClick
+                onStartSessionClick = {
+                    if (!isRunning) {
+                        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        sessionStartTime = formatter.format(Date())
+                    }
+
+                    isRunning = true
+                }
             )
 
             TimerButton(
                 icon = "□",
                 label = "Stop",
                 active = false,
-                iconColor = Color(0xFFFF4D6D)
+                iconColor = Color(0xFFFF4D6D),
+                onStartSessionClick = {
+                    val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    val endTime = formatter.format(Date())
+
+                    val studiedSeconds = (25 * 60) - timeLeft
+                    val studiedMinutes = if (studiedSeconds < 60) 1 else studiedSeconds / 60
+
+                    isRunning = false
+                    timeLeft = 25 * 60
+
+                    scope.launch {
+                        try {
+                            val response = RetrofitClient.api.createSession(
+                                SessionRequest(
+                                    user_id = userId,
+                                    start_time = sessionStartTime ?: endTime,
+                                    end_time = endTime,
+                                    duration_minutes = studiedMinutes,
+                                    status = "completed"
+                                )
+                            )
+
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "Session saved successfully!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Failed to save session", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             )
         }
     }
@@ -348,9 +432,7 @@ fun TimerButton(
             modifier = Modifier
                 .size(if (active) 84.dp else 74.dp)
                 .clickable {
-                    if (label == "Start") {
-                        onStartSessionClick()
-                    }
+                    onStartSessionClick()
                 }
                 .background(
                     if (active) {

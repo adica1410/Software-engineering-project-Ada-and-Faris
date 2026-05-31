@@ -29,6 +29,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.focusmodeapp.R
+import com.example.focusmodeapp.RegisterRequest
+import com.example.focusmodeapp.RetrofitClient
+import kotlinx.coroutines.launch
 
 @Composable
 fun CreateAccountScreen(
@@ -36,6 +39,7 @@ fun CreateAccountScreen(
     onAccountCreated: (String, String, String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -44,6 +48,7 @@ fun CreateAccountScreen(
 
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -174,13 +179,43 @@ fun CreateAccountScreen(
                         password.isNotBlank() &&
                         confirmPassword == password
                     ) {
-                        Toast.makeText(
-                            context,
-                            "Account created successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        scope.launch {
+                            isLoading = true
 
-                        onAccountCreated(fullName, email, password)
+                            try {
+                                val response = RetrofitClient.api.register(
+                                    RegisterRequest(
+                                        full_name = fullName,
+                                        email = email,
+                                        password = password
+                                    )
+                                )
+
+                                if (response.isSuccessful) {
+                                    Toast.makeText(
+                                        context,
+                                        "Account created successfully!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    onAccountCreated(fullName, email, password)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Registration failed. Email may already exist.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "Backend connection error: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     } else {
                         Toast.makeText(
                             context,
@@ -189,6 +224,7 @@ fun CreateAccountScreen(
                         ).show()
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp),
@@ -213,7 +249,7 @@ fun CreateAccountScreen(
                 ) {
 
                     Text(
-                        text = "Create Account",
+                        text = if (isLoading) "Creating..." else "Create Account",
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold

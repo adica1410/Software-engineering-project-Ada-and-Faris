@@ -1,4 +1,6 @@
 package com.example.focusmodeapp
 
-class LoginResponse {
-}
+data class LoginResponse(
+    val message: String,
+    val user: User
+)

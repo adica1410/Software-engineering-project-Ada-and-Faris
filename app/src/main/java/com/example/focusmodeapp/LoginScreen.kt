@@ -17,18 +17,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     savedEmail: String?,
     savedPassword: String?,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (Int, String, String) -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -98,13 +101,59 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    if (email == savedEmail && password == savedPassword) {
-                        Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                        onLoginSuccess()
-                    } else {
-                        Toast.makeText(context, "Wrong email or password", Toast.LENGTH_SHORT).show()
+                    if (email.isBlank() || password.isBlank()) {
+                        Toast.makeText(
+                            context,
+                            "Please enter email and password",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@Button
+                    }
+
+                    scope.launch {
+                        isLoading = true
+
+                        try {
+                            val response = RetrofitClient.api.login(
+                                LoginRequest(
+                                    email = email,
+                                    password = password
+                                )
+                            )
+
+                            if (response.isSuccessful) {
+                                val user = response.body()?.user
+
+                                Toast.makeText(
+                                    context,
+                                    "Login successful!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                if (user != null) {
+                                    onLoginSuccess(user.id, user.full_name, user.email)
+                                } else {
+                                    onLoginSuccess(1, email, email)
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Wrong email or password",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "Backend connection error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp),
@@ -124,7 +173,7 @@ fun LoginScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Log In",
+                        text = if (isLoading) "Logging in..." else "Log In",
                         color = Color.White,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold

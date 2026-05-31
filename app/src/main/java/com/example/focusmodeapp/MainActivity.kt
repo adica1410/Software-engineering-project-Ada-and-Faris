@@ -93,7 +93,14 @@ class MainActivity : ComponentActivity() {
                 "login" -> LoginScreen(
                     savedEmail = prefs.getString("email", null),
                     savedPassword = prefs.getString("password", null),
-                    onLoginSuccess = {
+                    onLoginSuccess = { userId, fullName, email ->
+                        prefs.edit()
+                            .putInt("userId", userId)
+                            .putString("fullName", fullName)
+                            .putString("email", email)
+                            .putBoolean("isLoggedIn", true)
+                            .apply()
+
                         currentScreen = "home"
                     },
                     onBackClick = {
