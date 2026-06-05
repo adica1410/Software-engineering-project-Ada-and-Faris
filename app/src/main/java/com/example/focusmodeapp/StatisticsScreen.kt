@@ -19,7 +19,8 @@ import androidx.compose.ui.unit.sp
 fun StatisticsScreen(
     onHomeClick: () -> Unit,
     onGoalsClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onBlockedClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(
@@ -148,7 +149,8 @@ fun StatisticsScreen(
             onHomeClick = onHomeClick,
             onStatisticsClick = {},
             onGoalsClick = onGoalsClick,
-            onProfileClick = onProfileClick
+            onProfileClick = onProfileClick,
+            onBlockedClick = onBlockedClick
         )
     }
 }

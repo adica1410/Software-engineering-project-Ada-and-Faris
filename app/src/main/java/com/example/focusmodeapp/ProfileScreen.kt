@@ -27,7 +27,8 @@ fun ProfileScreen(
     onGoalsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onChangePasswordClick: () -> Unit
+    onChangePasswordClick: () -> Unit,
+    onBlockedClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("focus_mode_user", Context.MODE_PRIVATE)
@@ -171,7 +172,8 @@ fun ProfileScreen(
             onHomeClick = onHomeClick,
             onStatisticsClick = onStatisticsClick,
             onGoalsClick = onGoalsClick,
-            onProfileClick = onProfileClick
+            onProfileClick = onProfileClick,
+            onBlockedClick = onBlockedClick
         )
     }
 }

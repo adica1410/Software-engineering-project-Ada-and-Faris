@@ -32,7 +32,8 @@ fun GoalsScreen(
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
     onCreateGoalClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onBlockedClick: () -> Unit
 ) {
 
     val context = LocalContext.current
@@ -172,7 +173,8 @@ fun GoalsScreen(
             onHomeClick = onHomeClick,
             onStatisticsClick = onStatisticsClick,
             onGoalsClick = onGoalsClick,
-            onProfileClick = onProfileClick
+            onProfileClick = onProfileClick,
+            onBlockedClick = onBlockedClick
         )
     }
 }
