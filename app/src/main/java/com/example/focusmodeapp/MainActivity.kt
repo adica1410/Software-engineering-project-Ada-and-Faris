@@ -132,6 +132,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onSettingsClick = {
                         currentScreen = "settings"
+                    },
+                    onPomodoroClick = {
+                        currentScreen = "pomodoro"
                     }
 
                 )
@@ -312,6 +315,11 @@ class MainActivity : ComponentActivity() {
                     },
                     onPasswordChanged = {
                         currentScreen = "profile"
+                    }
+                )
+                "pomodoro" -> PomodoroScreen(
+                    onBackClick = {
+                        currentScreen = "home"
                     }
                 )
 

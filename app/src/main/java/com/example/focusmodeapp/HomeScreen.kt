@@ -34,7 +34,8 @@ fun HomeScreen(
     onHistoryClick: () -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onBlockedClick: () -> Unit
+    onBlockedClick: () -> Unit,
+    onPomodoroClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -266,7 +267,10 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                PomodoroCard(Modifier.weight(1f))
+                PomodoroCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = onPomodoroClick
+                )
                 StreakCard(
                     modifier = Modifier.weight(1f),
                     streakDays = currentStreak,
@@ -786,10 +790,14 @@ fun DailyGoalCard(
 }
 
 @Composable
-fun PomodoroCard(modifier: Modifier) {
+fun PomodoroCard(
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
     Box(
         modifier = modifier
             .height(160.dp)
+            .clickable { onClick() }
             .background(Color(0xFF251020), RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
