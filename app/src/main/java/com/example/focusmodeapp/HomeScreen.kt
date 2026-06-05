@@ -31,7 +31,8 @@ fun HomeScreen(
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
     onBadgesClick: () -> Unit,
-    onHistoryClick: () -> Unit
+    onHistoryClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -279,7 +280,8 @@ fun HomeScreen(
             selectedScreen = "Home",
             onHomeClick = {},
             onStatisticsClick = onStatisticsClick,
-            onGoalsClick = onGoalsClick
+            onGoalsClick = onGoalsClick,
+            onProfileClick = onProfileClick
         )
     }
 }

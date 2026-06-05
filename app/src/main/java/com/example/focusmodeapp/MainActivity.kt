@@ -123,16 +123,16 @@ class MainActivity : ComponentActivity() {
                     },
                     onHistoryClick = {
                         currentScreen = "history"
+                    },
+                    onProfileClick = {
+                        currentScreen = "profile"
                     }
                 )
 
                 "statistics" -> StatisticsScreen(
-                    onHomeClick = {
-                        currentScreen = "home"
-                    },
-                    onGoalsClick = {
-                        currentScreen = "goals"
-                    }
+                    onHomeClick = { currentScreen = "home" },
+                    onGoalsClick = { currentScreen = "goals" },
+                    onProfileClick = { currentScreen = "profile" }
                 )
 
                 "goals" -> GoalsScreen(
@@ -180,6 +180,10 @@ class MainActivity : ComponentActivity() {
                     onCreateGoalClick = {
                         editingGoal = null
                         currentScreen = "createGoal"
+                    },
+
+                    onProfileClick = {
+                        currentScreen = "profile"
                     }
                 )
 
@@ -194,7 +198,6 @@ class MainActivity : ComponentActivity() {
                         currentScreen = "home"
                     }
                 )
-
 
                 "createGoal" -> CreateGoalScreen(
                     goalToEdit = editingGoal,
@@ -229,6 +232,19 @@ class MainActivity : ComponentActivity() {
                     onBackClick = {
                         currentScreen = "home"
                     }
+                )
+
+                "profile" -> ProfileScreen(
+                    onHomeClick = {
+                        currentScreen = "home"
+                    },
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
+                    },
+                    onProfileClick = {}
                 )
             }
         }

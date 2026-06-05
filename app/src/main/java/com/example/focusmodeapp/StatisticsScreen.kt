@@ -18,7 +18,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun StatisticsScreen(
     onHomeClick: () -> Unit,
-    onGoalsClick: () -> Unit
+    onGoalsClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(
@@ -146,7 +147,8 @@ fun StatisticsScreen(
             selectedScreen = "Statistics",
             onHomeClick = onHomeClick,
             onStatisticsClick = {},
-            onGoalsClick = onGoalsClick
+            onGoalsClick = onGoalsClick,
+            onProfileClick = onProfileClick
         )
     }
 }

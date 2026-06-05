@@ -31,7 +31,8 @@ fun GoalsScreen(
     onHomeClick: () -> Unit,
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
-    onCreateGoalClick: () -> Unit
+    onCreateGoalClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
 
     val context = LocalContext.current
@@ -59,7 +60,7 @@ fun GoalsScreen(
             }
 
             if (response.isSuccessful) {
-                databaseGoals = response.body()?.map { goal ->
+                databaseGoals = response.body()?.map { goal: GoalResponse ->
                     StudyGoal(
                         name = goal.title,
                         type = goal.goal_type,
@@ -170,7 +171,8 @@ fun GoalsScreen(
             selectedScreen = "Goals",
             onHomeClick = onHomeClick,
             onStatisticsClick = onStatisticsClick,
-            onGoalsClick = onGoalsClick
+            onGoalsClick = onGoalsClick,
+            onProfileClick = onProfileClick
         )
     }
 }
@@ -506,3 +508,4 @@ fun GoalsNavItem(
         )
     }
 }
+
