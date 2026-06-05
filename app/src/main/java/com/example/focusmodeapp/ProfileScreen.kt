@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun ProfileScreen(
@@ -24,7 +26,8 @@ fun ProfileScreen(
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onEditProfileClick: () -> Unit
+    onEditProfileClick: () -> Unit,
+    onChangePasswordClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("focus_mode_user", Context.MODE_PRIVATE)
@@ -40,8 +43,9 @@ fun ProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp)
-                .padding(top = 42.dp, bottom = 110.dp),
+                .padding(top = 42.dp, bottom = 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -126,6 +130,34 @@ fun ProfileScreen(
             ) {
                 Text(
                     text = "Edit Profile",
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+                    .background(
+                        Color(0xFF11162D),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .border(
+                        0.8.dp,
+                        Color(0xFF252B4C),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .clickable {
+                        onChangePasswordClick()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Change Password",
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold

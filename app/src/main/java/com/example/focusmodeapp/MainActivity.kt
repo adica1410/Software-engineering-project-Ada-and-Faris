@@ -247,6 +247,9 @@ class MainActivity : ComponentActivity() {
                     onProfileClick = {},
                     onEditProfileClick = {
                         currentScreen = "editProfile"
+                    },
+                    onChangePasswordClick = {
+                        currentScreen = "changePassword"
                     }
                 )
 
@@ -257,6 +260,14 @@ class MainActivity : ComponentActivity() {
                         currentScreen = "profile"
                     },
                     onSaveClick = {
+                        currentScreen = "profile"
+                    }
+                )
+                "changePassword" -> ChangePasswordScreen(
+                    onBackClick = {
+                        currentScreen = "profile"
+                    },
+                    onPasswordChanged = {
                         currentScreen = "profile"
                     }
                 )
