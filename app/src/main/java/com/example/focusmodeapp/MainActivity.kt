@@ -126,6 +126,22 @@ class MainActivity : ComponentActivity() {
                     },
                     onProfileClick = {
                         currentScreen = "profile"
+                    },
+                    onSettingsClick = {
+                        currentScreen = "settings"
+                    }
+
+                )
+                "settings" -> SettingsScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    },
+                    onChangePasswordClick = {
+                        currentScreen = "changePassword"
+                    },
+                    onLogoutClick = {
+                        prefs.edit().clear().apply()
+                        currentScreen = "welcome"
                     }
                 )
 

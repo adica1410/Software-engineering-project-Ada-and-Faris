@@ -32,7 +32,8 @@ fun HomeScreen(
     onGoalsClick: () -> Unit,
     onBadgesClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -151,7 +152,9 @@ fun HomeScreen(
                 .padding(top = 28.dp, bottom = 100.dp)
         ) {
 
-            HomeTopBar()
+            HomeTopBar(
+                onSettingsClick = onSettingsClick
+            )
 
             Spacer(modifier = Modifier.height(22.dp))
 
@@ -287,7 +290,9 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(
+    onSettingsClick: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -296,7 +301,10 @@ fun HomeTopBar() {
         Text(
             text = "☰",
             color = Color.White,
-            fontSize = 30.sp
+            fontSize = 30.sp,
+            modifier = Modifier.clickable {
+                onSettingsClick()
+            }
         )
 
         Box {
@@ -315,7 +323,6 @@ fun HomeTopBar() {
         }
     }
 }
-
 @Composable
 fun FocusMainCard(
     onStartSessionClick: () -> Unit
