@@ -3,6 +3,7 @@ package com.example.focusmodeapp
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,7 +23,8 @@ fun ProfileScreen(
     onHomeClick: () -> Unit,
     onStatisticsClick: () -> Unit,
     onGoalsClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onEditProfileClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("focus_mode_user", Context.MODE_PRIVATE)
@@ -100,7 +102,9 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(34.dp))
 
             ProfileInfoCard("Name", fullName)
+
             Spacer(modifier = Modifier.height(14.dp))
+
             ProfileInfoCard("Email", email)
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -114,7 +118,10 @@ fun ProfileScreen(
                             listOf(Color(0xFF9B5CFF), Color(0xFF6F2CFF))
                         ),
                         RoundedCornerShape(18.dp)
-                    ),
+                    )
+                    .clickable {
+                        onEditProfileClick()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(

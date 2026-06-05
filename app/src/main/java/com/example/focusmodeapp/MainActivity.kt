@@ -244,8 +244,23 @@ class MainActivity : ComponentActivity() {
                     onGoalsClick = {
                         currentScreen = "goals"
                     },
-                    onProfileClick = {}
+                    onProfileClick = {},
+                    onEditProfileClick = {
+                        currentScreen = "editProfile"
+                    }
                 )
+
+// Add this new screen below profile:
+
+                "editProfile" -> EditProfileScreen(
+                    onBackClick = {
+                        currentScreen = "profile"
+                    },
+                    onSaveClick = {
+                        currentScreen = "profile"
+                    }
+                )
+
             }
         }
     }
