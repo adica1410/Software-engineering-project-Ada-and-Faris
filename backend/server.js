@@ -176,6 +176,42 @@ app.delete("/goals/:id", (req, res) => {
 });
 
 
+// UPDATE goal
+app.put("/goals/:id", (req, res) => {
+  const { title, goal_type, target_minutes, current_minutes = 0 } = req.body;
+
+  const sql = `
+    UPDATE study_goals
+    SET title = ?, goal_type = ?, target_minutes = ?, current_minutes = ?
+    WHERE id = ?
+  `;
+
+  db.query(
+    sql,
+    [title, goal_type, target_minutes, current_minutes, req.params.id],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating goal",
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+
+      res.json({
+        id: Number(req.params.id),
+        title,
+        goal_type,
+        target_minutes,
+        current_minutes
+      });
+    }
+  );
+});
+
 // CREATE reminder
 app.post("/reminders", (req, res) => {
   const {

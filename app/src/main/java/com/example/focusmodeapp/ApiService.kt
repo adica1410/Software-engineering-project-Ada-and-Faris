@@ -6,6 +6,7 @@ import retrofit2.http.POST
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.DELETE
+import retrofit2.http.PUT
 
 interface ApiService {
 
@@ -58,4 +59,10 @@ interface ApiService {
     suspend fun deleteSession(
         @Path("id") id: Int
     ): Response<Any>
+
+    @PUT("goals/{id}")
+    suspend fun updateGoal(
+        @Path("id") id: Int,
+        @Body request: GoalRequest
+    ): Response<GoalResponse>
 }

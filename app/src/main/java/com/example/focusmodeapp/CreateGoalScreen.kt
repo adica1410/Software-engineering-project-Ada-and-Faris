@@ -386,19 +386,24 @@ fun CreateGoalScreen(
                         isSaving = true
 
                         try {
-                            val response = RetrofitClient.api.createGoal(
-                                GoalRequest(
-                                    user_id = userId,
-                                    title = finalGoalName,
-                                    goal_type = selectedTab,
-                                    target_minutes = targetMinutes
-                                )
+                            val goalRequest = GoalRequest(
+                                user_id = userId,
+                                title = finalGoalName,
+                                goal_type = selectedTab,
+                                target_minutes = targetMinutes
                             )
+
+                            val response = if (goalToEdit == null) {
+                                RetrofitClient.api.createGoal(goalRequest)
+                            } else {
+                                RetrofitClient.api.updateGoal(goalToEdit.id, goalRequest)
+                            }
 
                             if (response.isSuccessful) {
                                 val createdGoal = response.body()
 
                                 val newGoal = StudyGoal(
+                                    id = createdGoal?.id ?: goalToEdit?.id ?: 0,
                                     name = createdGoal?.title ?: finalGoalName,
                                     type = createdGoal?.goal_type ?: selectedTab,
                                     hours = (createdGoal?.target_minutes ?: targetMinutes) / 60,
