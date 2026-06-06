@@ -63,6 +63,7 @@ fun GoalsScreen(
             if (response.isSuccessful) {
                 databaseGoals = response.body()?.map { goal: GoalResponse ->
                     StudyGoal(
+                        id = goal.id,
                         name = goal.title,
                         type = goal.goal_type,
                         hours = goal.target_minutes / 60,
@@ -79,8 +80,7 @@ fun GoalsScreen(
         }
     }
 
-    val dailyGoal = databaseGoals.firstOrNull { it.type == "Daily" }
-    val weeklyGoal = databaseGoals.firstOrNull { it.type == "Weekly" }
+
 
     val todaySeconds = sessions
         .filter { isToday(it.created_at) }
@@ -137,28 +137,25 @@ fun GoalsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                dailyGoal?.let {
+                databaseGoals.forEach { goal ->
 
-                    GoalsDailyGoalCard(
-                        goal = it,
-                        completedSeconds = todaySeconds,
-                        onEditGoal = onEditGoal,
-                        onAddStudyTime = onAddStudyTime,
-                        onDeleteGoal = onDeleteGoal
-                    )
-
-                    Spacer(modifier = Modifier.height(18.dp))
-                }
-
-                weeklyGoal?.let {
-
-                    GoalsWeeklyGoalCard(
-                        goal = it,
-                        completedSeconds = weekSeconds,
-                        onEditGoal = onEditGoal,
-                        onAddStudyTime = onAddStudyTime,
-                        onDeleteGoal = onDeleteGoal
-                    )
+                    if (goal.type == "Daily") {
+                        GoalsDailyGoalCard(
+                            goal = goal,
+                            completedSeconds = todaySeconds,
+                            onEditGoal = onEditGoal,
+                            onAddStudyTime = onAddStudyTime,
+                            onDeleteGoal = onDeleteGoal
+                        )
+                    } else {
+                        GoalsWeeklyGoalCard(
+                            goal = goal,
+                            completedSeconds = weekSeconds,
+                            onEditGoal = onEditGoal,
+                            onAddStudyTime = onAddStudyTime,
+                            onDeleteGoal = onDeleteGoal
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(18.dp))
                 }

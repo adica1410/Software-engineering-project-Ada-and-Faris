@@ -1,6 +1,7 @@
 package com.example.focusmodeapp
 
 data class StudyGoal(
+    val id: Int = 0,
     val name: String,
     val type: String,
     val hours: Int,
