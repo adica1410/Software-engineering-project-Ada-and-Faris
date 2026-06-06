@@ -17,6 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PomodoroScreen(
@@ -29,6 +36,60 @@ fun PomodoroScreen(
     var cycleCount by remember { mutableStateOf(1) }
     var timeLeft by remember { mutableStateOf(focusSeconds) }
     var isRunning by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val prefs = context.getSharedPreferences(
+        "focus_mode_user",
+        Context.MODE_PRIVATE
+    )
+
+    val userId = prefs.getInt("userId", 1)
+
+    var sessionStartTime by remember { mutableStateOf<String?>(null) }
+
+    fun savePomodoroSession(durationSeconds: Int) {
+        if (durationSeconds <= 0) return
+
+        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val endTime = formatter.format(Date())
+
+        scope.launch {
+            try {
+                val response = RetrofitClient.api.createSession(
+                    SessionRequest(
+                        user_id = userId,
+                        start_time = sessionStartTime ?: endTime,
+                        end_time = endTime,
+                        duration_minutes = durationSeconds / 60,
+                        duration_seconds = durationSeconds,
+                        status = "completed"
+                    )
+                )
+
+                if (response.isSuccessful) {
+                    Toast.makeText(
+                        context,
+                        "Pomodoro session saved!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Failed to save Pomodoro session",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    "Backend error: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
 
     val totalTime = if (isFocusMode) focusSeconds else breakSeconds
     val progress = if (totalTime > 0) {
@@ -45,8 +106,11 @@ fun PomodoroScreen(
 
         if (isRunning && timeLeft == 0) {
             if (isFocusMode) {
+                savePomodoroSession(focusSeconds)
+
                 isFocusMode = false
                 timeLeft = breakSeconds
+                sessionStartTime = null
             } else {
                 isFocusMode = true
                 cycleCount++
@@ -174,6 +238,11 @@ fun PomodoroScreen(
                     primary = true,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (!isRunning && isFocusMode && timeLeft == focusSeconds) {
+                        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        sessionStartTime = formatter.format(Date())
+                    }
+
                     isRunning = !isRunning
                 }
 
@@ -182,10 +251,16 @@ fun PomodoroScreen(
                     primary = false,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (isFocusMode && timeLeft < focusSeconds) {
+                        val studiedSeconds = focusSeconds - timeLeft
+                        savePomodoroSession(studiedSeconds)
+                    }
+
                     isRunning = false
                     isFocusMode = true
                     cycleCount = 1
                     timeLeft = focusSeconds
+                    sessionStartTime = null
                 }
             }
         }

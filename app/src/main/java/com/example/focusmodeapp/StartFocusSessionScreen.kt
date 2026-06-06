@@ -12,6 +12,13 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun StartFocusSessionScreen(
@@ -20,6 +27,12 @@ fun StartFocusSessionScreen(
     var selectedDuration by remember { mutableStateOf(25) }
     var focusMode by remember { mutableStateOf(true) }
     var blockDistractions by remember { mutableStateOf(true) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val prefs = context.getSharedPreferences("focus_mode_user", Context.MODE_PRIVATE)
+    val userId = prefs.getInt("userId", 1)
 
     Column(
         modifier = Modifier
@@ -222,7 +235,51 @@ fun StartFocusSessionScreen(
                     ),
                     RoundedCornerShape(13.dp)
                 )
-                .clickable { },
+                .clickable {
+                    val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    val startTime = formatter.format(Date())
+                    val endTime = formatter.format(Date())
+
+                    val durationMinutes = selectedDuration
+                    val durationSeconds = selectedDuration * 60
+
+                    scope.launch {
+                        try {
+                            val response = RetrofitClient.api.createSession(
+                                SessionRequest(
+                                    user_id = userId,
+                                    start_time = startTime,
+                                    end_time = endTime,
+                                    duration_minutes = durationMinutes,
+                                    duration_seconds = durationSeconds,
+                                    status = "completed"
+                                )
+                            )
+
+                            if (response.isSuccessful) {
+                                Toast.makeText(
+                                    context,
+                                    "Session saved successfully!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                onBackClick()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Failed to save session",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "Backend error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                },
             contentAlignment = Alignment.Center
         ) {
             Text(
