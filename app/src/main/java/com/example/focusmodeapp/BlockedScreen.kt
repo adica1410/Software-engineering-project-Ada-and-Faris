@@ -22,6 +22,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+
 
 @Composable
 fun BlockedWebsitesScreen(
@@ -36,21 +38,23 @@ fun BlockedWebsitesScreen(
 
     var websiteInput by remember { mutableStateOf("") }
 
+    val scope = rememberCoroutineScope()
+    val userId = prefs.getInt("userId", 1)
+
     var blockedWebsites by remember {
-        mutableStateOf(
-            prefs.getString("blocked_websites", "instagram.com,tiktok.com,youtube.com")
-                ?.split(",")
-                ?.map { it.trim() }
-                ?.filter { it.isNotBlank() }
-                ?: emptyList()
-        )
+        mutableStateOf<List<BlockedWebsiteResponse>>(emptyList())
     }
 
-    fun saveBlockedWebsites(newList: List<String>) {
-        blockedWebsites = newList
-        prefs.edit()
-            .putString("blocked_websites", newList.joinToString(","))
-            .apply()
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.api.getBlockedWebsites(userId)
+
+            if (response.isSuccessful) {
+                blockedWebsites = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to load blocked websites", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Box(
@@ -159,14 +163,36 @@ fun BlockedWebsitesScreen(
                                         Toast.makeText(context, "Please enter a website", Toast.LENGTH_SHORT).show()
                                     }
 
-                                    blockedWebsites.contains(cleanWebsite) -> {
+                                    blockedWebsites.any { it.website_url == cleanWebsite } -> {
                                         Toast.makeText(context, "Website already blocked", Toast.LENGTH_SHORT).show()
                                     }
 
                                     else -> {
-                                        saveBlockedWebsites(blockedWebsites + cleanWebsite)
-                                        websiteInput = ""
-                                        Toast.makeText(context, "Website blocked", Toast.LENGTH_SHORT).show()
+                                        scope.launch {
+                                            try {
+                                                val response = RetrofitClient.api.createBlockedWebsite(
+                                                    BlockedWebsiteRequest(
+                                                        user_id = userId,
+                                                        website_url = cleanWebsite
+                                                    )
+                                                )
+
+                                                if (response.isSuccessful) {
+                                                    val createdWebsite = response.body()
+
+                                                    if (createdWebsite != null) {
+                                                        blockedWebsites = blockedWebsites + createdWebsite
+                                                    }
+
+                                                    websiteInput = ""
+                                                    Toast.makeText(context, "Website blocked", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(context, "Failed to block website", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -211,10 +237,22 @@ fun BlockedWebsitesScreen(
             } else {
                 blockedWebsites.forEach { website ->
                     BlockedWebsiteItem(
-                        website = website,
+                        website = website.website_url,
                         onRemoveClick = {
-                            saveBlockedWebsites(blockedWebsites - website)
-                            Toast.makeText(context, "Website removed", Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                try {
+                                    val response = RetrofitClient.api.deleteBlockedWebsite(website.id)
+
+                                    if (response.isSuccessful) {
+                                        blockedWebsites = blockedWebsites.filter { it.id != website.id }
+                                        Toast.makeText(context, "Website removed", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Failed to remove website", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
                         }
                     )
 

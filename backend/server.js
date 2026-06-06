@@ -479,3 +479,83 @@ app.delete("/sessions/:id", (req, res) => {
 app.listen(3000, "0.0.0.0", () => {
   console.log("Backend server is running on port 3000");
 });
+
+
+
+// CREATE blocked website
+app.post("/blocked-websites", (req, res) => {
+  const { user_id, website_url, is_active = 1 } = req.body;
+
+  if (!user_id || !website_url) {
+    return res.status(400).json({
+      message: "user_id and website_url are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO blocked_websites
+    (user_id, website_url, is_active)
+    VALUES (?, ?, ?)
+  `;
+
+  db.query(sql, [user_id, website_url, is_active], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error creating blocked website",
+        error: err.message
+      });
+    }
+
+    res.status(201).json({
+      id: result.insertId,
+      user_id,
+      website_url,
+      is_active
+    });
+  });
+});
+
+// READ blocked websites by user
+app.get("/blocked-websites/user/:userId", (req, res) => {
+  const sql = `
+    SELECT *
+    FROM blocked_websites
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching blocked websites",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+// DELETE blocked website
+app.delete("/blocked-websites/:id", (req, res) => {
+  const sql = "DELETE FROM blocked_websites WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error deleting blocked website",
+        error: err.message
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Blocked website not found"
+      });
+    }
+
+    res.json({
+      message: "Blocked website deleted successfully"
+    });
+  });
+});

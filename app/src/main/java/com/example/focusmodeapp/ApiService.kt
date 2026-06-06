@@ -65,4 +65,19 @@ interface ApiService {
         @Path("id") id: Int,
         @Body request: GoalRequest
     ): Response<GoalResponse>
+
+    @POST("blocked-websites")
+    suspend fun createBlockedWebsite(
+        @Body request: BlockedWebsiteRequest
+    ): Response<BlockedWebsiteResponse>
+
+    @GET("blocked-websites/user/{userId}")
+    suspend fun getBlockedWebsites(
+        @Path("userId") userId: Int
+    ): Response<List<BlockedWebsiteResponse>>
+
+    @DELETE("blocked-websites/{id}")
+    suspend fun deleteBlockedWebsite(
+        @Path("id") id: Int
+    ): Response<Unit>
 }
