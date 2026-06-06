@@ -90,6 +90,65 @@ app.post("/login", (req, res) => {
 });
 
 
+// UPDATE user profile
+app.put("/users/:id", (req, res) => {
+  const { full_name, email } = req.body;
+
+  if (!full_name || !email) {
+    return res.status(400).json({
+      message: "Full name and email are required"
+    });
+  }
+
+  const checkSql = "SELECT * FROM users WHERE email = ? AND id != ?";
+
+  db.query(checkSql, [email, req.params.id], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error checking email",
+        error: err.message
+      });
+    }
+
+    if (results.length > 0) {
+      return res.status(409).json({
+        message: "Email already in use"
+      });
+    }
+
+    const updateSql = `
+      UPDATE users
+      SET full_name = ?, email = ?
+      WHERE id = ?
+    `;
+
+    db.query(updateSql, [full_name, email, req.params.id], (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating profile",
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message: "User not found"
+        });
+      }
+
+      res.json({
+        message: "Profile updated successfully",
+        user: {
+          id: Number(req.params.id),
+          full_name,
+          email
+        }
+      });
+    });
+  });
+});
+
+
 // CREATE goal
 app.post("/goals", (req, res) => {
   const {
@@ -480,6 +539,61 @@ app.listen(3000, "0.0.0.0", () => {
   console.log("Backend server is running on port 3000");
 });
 
+
+// CHANGE user password
+app.put("/users/:id/password", (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({
+      message: "Current password and new password are required"
+    });
+  }
+
+  const sql = "SELECT * FROM users WHERE id = ?";
+
+  db.query(sql, [req.params.id], async (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error finding user",
+        error: err.message
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const user = results[0];
+
+    const isMatch = await bcrypt.compare(current_password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Current password is incorrect"
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    const updateSql = "UPDATE users SET password = ? WHERE id = ?";
+
+    db.query(updateSql, [hashedPassword, req.params.id], (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating password",
+          error: err.message
+        });
+      }
+
+      res.json({
+        message: "Password changed successfully"
+      });
+    });
+  });
+});
 
 
 // CREATE blocked website

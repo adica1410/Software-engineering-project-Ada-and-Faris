@@ -18,6 +18,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChangePasswordScreen(
@@ -26,6 +27,9 @@ fun ChangePasswordScreen(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("focus_mode_user", Context.MODE_PRIVATE)
+
+    val scope = rememberCoroutineScope()
+    val userId = prefs.getInt("userId", 1)
 
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -109,28 +113,42 @@ fun ChangePasswordScreen(
                     .clickable {
                         when {
                             currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank() -> {
-                                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                            }
-
-                            savedPassword.isNotBlank() && currentPassword != savedPassword -> {
-                                Toast.makeText(context, "Current password is incorrect", Toast.LENGTH_SHORT).show()
-                            }
-
-                            newPassword.length < 4 -> {
-                                Toast.makeText(context, "Password must be at least 4 characters", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
                             }
 
                             newPassword != confirmPassword -> {
-                                Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "New passwords do not match", Toast.LENGTH_SHORT).show()
+                            }
+
+                            newPassword.length < 6 -> {
+                                Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
                             }
 
                             else -> {
-                                prefs.edit()
-                                    .putString("password", newPassword)
-                                    .apply()
+                                scope.launch {
+                                    try {
+                                        val response = RetrofitClient.api.changePassword(
+                                            userId,
+                                            ChangePasswordRequest(
+                                                current_password = currentPassword,
+                                                new_password = newPassword
+                                            )
+                                        )
 
-                                Toast.makeText(context, "Password changed successfully", Toast.LENGTH_SHORT).show()
-                                onPasswordChanged()
+                                        if (response.isSuccessful) {
+                                            prefs.edit()
+                                                .putString("password", newPassword)
+                                                .apply()
+
+                                            Toast.makeText(context, "Password changed successfully", Toast.LENGTH_SHORT).show()
+                                            onPasswordChanged()
+                                        } else {
+                                            Toast.makeText(context, "Current password is incorrect", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                             }
                         }
                     },

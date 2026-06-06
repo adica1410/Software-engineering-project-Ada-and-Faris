@@ -80,4 +80,16 @@ interface ApiService {
     suspend fun deleteBlockedWebsite(
         @Path("id") id: Int
     ): Response<Unit>
+
+    @PUT("users/{id}")
+    suspend fun updateProfile(
+        @Path("id") id: Int,
+        @Body request: UpdateProfileRequest
+    ): Response<UpdateProfileResponse>
+
+    @PUT("users/{id}/password")
+    suspend fun changePassword(
+        @Path("id") id: Int,
+        @Body request: ChangePasswordRequest
+    ): Response<ChangePasswordResponse>
 }

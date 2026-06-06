@@ -18,6 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import android.widget.Toast
+import kotlinx.coroutines.launch
+
+
+
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit,
@@ -29,6 +34,8 @@ fun EditProfileScreen(
         "focus_mode_user",
         Context.MODE_PRIVATE
     )
+    val scope = rememberCoroutineScope()
+    val userId = prefs.getInt("userId", 1)
 
     var fullName by remember {
         mutableStateOf(
@@ -143,13 +150,37 @@ fun EditProfileScreen(
                         RoundedCornerShape(18.dp)
                     )
                     .clickable {
+                        if (fullName.isBlank() || email.isBlank()) {
+                            Toast.makeText(context, "Name and email are required", Toast.LENGTH_SHORT).show()
+                        } else {
+                            scope.launch {
+                                try {
+                                    val response = RetrofitClient.api.updateProfile(
+                                        userId,
+                                        UpdateProfileRequest(
+                                            full_name = fullName,
+                                            email = email
+                                        )
+                                    )
 
-                        prefs.edit()
-                            .putString("fullName", fullName)
-                            .putString("email", email)
-                            .apply()
+                                    if (response.isSuccessful) {
+                                        val updatedUser = response.body()?.user
 
-                        onSaveClick()
+                                        prefs.edit()
+                                            .putString("fullName", updatedUser?.full_name ?: fullName)
+                                            .putString("email", updatedUser?.email ?: email)
+                                            .apply()
+
+                                        Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                                        onSaveClick()
+                                    } else {
+                                        Toast.makeText(context, "Failed to update profile", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Backend error: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
