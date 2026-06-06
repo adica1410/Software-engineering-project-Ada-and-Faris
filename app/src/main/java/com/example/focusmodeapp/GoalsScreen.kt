@@ -145,17 +145,73 @@ fun GoalsScreen(
                             completedSeconds = todaySeconds,
                             onEditGoal = onEditGoal,
                             onAddStudyTime = onAddStudyTime,
-                            onDeleteGoal = onDeleteGoal
+                            onDeleteGoal = { goalToDelete ->
+                                scope.launch {
+                                    try {
+                                        val response = RetrofitClient.api.deleteGoal(goalToDelete.id)
+
+                                        if (response.isSuccessful) {
+                                            databaseGoals = databaseGoals.filter { it.id != goalToDelete.id }
+
+                                            Toast.makeText(
+                                                context,
+                                                "Goal deleted successfully",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Failed to delete goal",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            "Error deleting goal",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
                         )
-                    } else {
-                        GoalsWeeklyGoalCard(
-                            goal = goal,
-                            completedSeconds = weekSeconds,
-                            onEditGoal = onEditGoal,
-                            onAddStudyTime = onAddStudyTime,
-                            onDeleteGoal = onDeleteGoal
-                        )
+                     } else {
+                GoalsDailyGoalCard(
+                    goal = goal,
+                    completedSeconds = weekSeconds,
+                    onEditGoal = onEditGoal,
+                    onAddStudyTime = onAddStudyTime,
+                    onDeleteGoal = { goalToDelete ->
+                        scope.launch {
+                            try {
+                                val response = RetrofitClient.api.deleteGoal(goalToDelete.id)
+
+                                if (response.isSuccessful) {
+                                    databaseGoals = databaseGoals.filter { it.id != goalToDelete.id }
+
+                                    Toast.makeText(
+                                        context,
+                                        "Goal deleted successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to delete goal",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "Error deleting goal",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
+                )
+            }
 
                     Spacer(modifier = Modifier.height(18.dp))
                 }
@@ -197,16 +253,7 @@ fun GoalsDailyGoalCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                onDeleteGoal(goal)
-
-                Toast.makeText(
-                    context,
-                    "Goal deleted successfully",
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF081126)),
         shape = RoundedCornerShape(24.dp)
     ) {
@@ -232,14 +279,26 @@ fun GoalsDailyGoalCard(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF121A33))
-                        .clickable { onEditGoal(goal) }
-                        .padding(horizontal = 13.dp, vertical = 8.dp)
-                ) {
-                    Text("✎  Edit", color = Color(0xFF9B5CFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF121A33))
+                            .clickable { onEditGoal(goal) }
+                            .padding(horizontal = 13.dp, vertical = 8.dp)
+                    ) {
+                        Text("✎ Edit", color = Color(0xFF9B5CFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF2A1118))
+                            .clickable { onDeleteGoal(goal) }
+                            .padding(horizontal = 13.dp, vertical = 8.dp)
+                    ) {
+                        Text("🗑", color = Color(0xFFFF6B6B), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -311,8 +370,7 @@ fun GoalsWeeklyGoalCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onDeleteGoal(goal) },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF081126)),
         shape = RoundedCornerShape(24.dp)
     ) {
@@ -340,16 +398,26 @@ fun GoalsWeeklyGoalCard(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Box(
-                    modifier = Modifier
-                        .width(76.dp)
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF121A33))
-                        .clickable { onEditGoal(goal) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✎  Edit", color = Color(0xFF9B5CFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF121A33))
+                            .clickable { onEditGoal(goal) }
+                            .padding(horizontal = 11.dp, vertical = 8.dp)
+                    ) {
+                        Text("✎ Edit", color = Color(0xFF9B5CFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF2A1118))
+                            .clickable { onDeleteGoal(goal) }
+                            .padding(horizontal = 11.dp, vertical = 8.dp)
+                    ) {
+                        Text("🗑", color = Color(0xFFFF6B6B), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 

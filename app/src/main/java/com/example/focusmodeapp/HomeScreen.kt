@@ -258,7 +258,8 @@ fun HomeScreen(
                 goal = dailyGoal,
                 todaySeconds = todaySeconds,
                 progressPercent = dailyGoalProgressPercent,
-                progressFraction = dailyGoalProgressFraction
+                progressFraction = dailyGoalProgressFraction,
+                onGoalsClick = onGoalsClick
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -700,7 +701,8 @@ fun DailyGoalCard(
     goal: GoalResponse?,
     todaySeconds: Int,
     progressPercent: Int,
-    progressFraction: Float
+    progressFraction: Float,
+    onGoalsClick: () -> Unit
 ) {
     val targetMinutes = goal?.target_minutes ?: 0
 
@@ -774,15 +776,22 @@ fun DailyGoalCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${formatDuration(todaySeconds)} / ${formatHoursMinutes(targetMinutes * 60)}",
+                    text = if (goal != null) {
+                        "${formatDuration(todaySeconds)} / ${formatHoursMinutes(targetMinutes * 60)}"
+                    } else {
+                        "No daily goal set"
+                    },
                     color = Color(0xFF36D979),
                     fontSize = 13.sp
                 )
 
                 Text(
-                    text = "Edit Goal  ›",
+                    text = if (goal != null) "Edit Goal  ›" else "Create Goal  ›",
                     color = Color(0xFF9B5CFF),
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable {
+                        onGoalsClick()
+                    }
                 )
             }
         }
