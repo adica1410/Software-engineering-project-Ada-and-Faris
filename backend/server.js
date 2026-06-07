@@ -1,72 +1,675 @@
 const express = require("express");
 const cors = require("cors");
+const db = require("./db");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-let focusSessions = [];
+// TEST ROUTE
+app.get("/", (req, res) => {
+  res.json({ message: "Focus Mode API is running" });
+});
+
+// REGISTER user
+app.post("/register", async (req, res) => {
+  const { full_name, email, password } = req.body;
+
+  if (!full_name || !email || !password) {
+    return res.status(400).json({ message: "Full name, email and password are required" });
+  }
+
+  const checkSql = "SELECT * FROM users WHERE email = ?";
+
+  db.query(checkSql, [email], async (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Error checking user", error: err.message });
+    }
+
+    if (results.length > 0) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const insertSql = "INSERT INTO users (full_name, email, password) VALUES (?, ?, ?)";
+
+    db.query(insertSql, [full_name, email, hashedPassword], (err, result) => {
+      if (err) {
+        return res.status(500).json({ message: "Error registering user", error: err.message });
+      }
+
+      res.status(201).json({
+        message: "User registered successfully",
+        user: {
+          id: result.insertId,
+          full_name,
+          email
+        }
+      });
+    });
+  });
+});
+
+// LOGIN user
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  const sql = "SELECT * FROM users WHERE email = ?";
+
+  db.query(sql, [email], async (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Error logging in", error: err.message });
+    }
+
+    if (results.length === 0) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const user = results[0];
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email
+      }
+    });
+  });
+});
+
+
+// UPDATE user profile
+app.put("/users/:id", (req, res) => {
+  const { full_name, email } = req.body;
+
+  if (!full_name || !email) {
+    return res.status(400).json({
+      message: "Full name and email are required"
+    });
+  }
+
+  const checkSql = "SELECT * FROM users WHERE email = ? AND id != ?";
+
+  db.query(checkSql, [email, req.params.id], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error checking email",
+        error: err.message
+      });
+    }
+
+    if (results.length > 0) {
+      return res.status(409).json({
+        message: "Email already in use"
+      });
+    }
+
+    const updateSql = `
+      UPDATE users
+      SET full_name = ?, email = ?
+      WHERE id = ?
+    `;
+
+    db.query(updateSql, [full_name, email, req.params.id], (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating profile",
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message: "User not found"
+        });
+      }
+
+      res.json({
+        message: "Profile updated successfully",
+        user: {
+          id: Number(req.params.id),
+          full_name,
+          email
+        }
+      });
+    });
+  });
+});
+
+
+// CREATE goal
+app.post("/goals", (req, res) => {
+  const {
+    user_id,
+    title,
+    goal_type,
+    target_minutes,
+    current_minutes = 0
+  } = req.body;
+
+  if (!user_id || !title || !goal_type || !target_minutes) {
+    return res.status(400).json({
+      message: "user_id, title, goal_type and target_minutes are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO study_goals
+    (user_id, title, goal_type, target_minutes, current_minutes)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [user_id, title, goal_type, target_minutes, current_minutes],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error creating goal",
+          error: err.message
+        });
+      }
+
+      res.status(201).json({
+        id: result.insertId,
+        user_id,
+        title,
+        goal_type,
+        target_minutes,
+        current_minutes
+      });
+    }
+  );
+});
+
+// READ goals by user
+app.get("/goals/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM study_goals
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching goals",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+// DELETE goal
+app.delete("/goals/:id", (req, res) => {
+  const sql = "DELETE FROM study_goals WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error deleting goal",
+        error: err.message
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Goal not found" });
+    }
+
+    res.json({ message: "Goal deleted successfully" });
+  });
+});
+
+
+// UPDATE goal
+app.put("/goals/:id", (req, res) => {
+  const { title, goal_type, target_minutes, current_minutes = 0 } = req.body;
+
+  const sql = `
+    UPDATE study_goals
+    SET title = ?, goal_type = ?, target_minutes = ?, current_minutes = ?
+    WHERE id = ?
+  `;
+
+  db.query(
+    sql,
+    [title, goal_type, target_minutes, current_minutes, req.params.id],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating goal",
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+
+      res.json({
+        id: Number(req.params.id),
+        title,
+        goal_type,
+        target_minutes,
+        current_minutes
+      });
+    }
+  );
+});
+
+// CREATE reminder
+app.post("/reminders", (req, res) => {
+  const {
+    user_id,
+    title,
+    reminder_time,
+    is_enabled = true
+  } = req.body;
+
+  if (!user_id || !title || !reminder_time) {
+    return res.status(400).json({
+      message: "user_id, title and reminder_time are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO reminders
+    (user_id, title, reminder_time, is_enabled)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [user_id, title, reminder_time, is_enabled],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error creating reminder",
+          error: err.message
+        });
+      }
+
+      res.status(201).json({
+        id: result.insertId,
+        user_id,
+        title,
+        reminder_time,
+        is_enabled
+      });
+    }
+  );
+});
+
+// READ reminders by user
+app.get("/reminders/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM reminders
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching reminders",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+
+// READ badges by user
+app.get("/badges/user/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  const sessionsSql = `
+    SELECT COUNT(*) AS session_count,
+           COALESCE(SUM(duration_minutes), 0) AS total_minutes
+    FROM focus_sessions
+    WHERE user_id = ?
+  `;
+
+  const goalsSql = `
+    SELECT COUNT(*) AS goal_count
+    FROM study_goals
+    WHERE user_id = ?
+  `;
+
+  db.query(sessionsSql, [userId], (err, sessionResults) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error checking sessions for badges",
+        error: err.message
+      });
+    }
+
+    db.query(goalsSql, [userId], (err, goalResults) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error checking goals for badges",
+          error: err.message
+        });
+      }
+
+      const sessionCount = sessionResults[0].session_count;
+      const totalMinutes = sessionResults[0].total_minutes;
+      const goalCount = goalResults[0].goal_count;
+
+      const badges = [];
+
+      if (sessionCount >= 1) {
+        badges.push({
+          badge_name: "First Focus Session",
+          badge_description: "Completed your first focus session."
+        });
+      }
+
+      if (goalCount >= 1) {
+        badges.push({
+          badge_name: "Goal Setter",
+          badge_description: "Created your first study goal."
+        });
+      }
+
+      if (totalMinutes >= 60) {
+        badges.push({
+          badge_name: "Focused Learner",
+          badge_description: "Studied for at least 60 minutes in total."
+        });
+      }
+
+      res.json(badges);
+    });
+  });
+});
+
+
 
 // CREATE session
 app.post("/sessions", (req, res) => {
-  const session = {
-    id: Date.now(),
-    user_id: req.body.user_id || 1,
-    start_time: req.body.start_time,
-    end_time: req.body.end_time || null,
-    duration_minutes: req.body.duration_minutes || 0,
-    status: req.body.status || "active",
-    created_at: new Date()
-  };
+  const {
+    user_id = 1,
+    start_time,
+    end_time = null,
+    duration_minutes = 0,
+    duration_seconds = 0,
+    status = "active"
+  } = req.body;
 
-  focusSessions.push(session);
-  res.status(201).json(session);
+  const sql = `
+    INSERT INTO focus_sessions
+    (user_id, start_time, end_time, duration_minutes, duration_seconds, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  db.query(sql, [user_id, start_time, end_time, duration_minutes, duration_seconds, status], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: "Error creating session", error: err.message });
+    }
+
+    res.status(201).json({
+      id: result.insertId,
+      user_id,
+      start_time,
+      end_time,
+      duration_minutes,
+      status
+    });
+  });
 });
 
 // READ all sessions
 app.get("/sessions", (req, res) => {
-  res.json(focusSessions);
+  const sql = "SELECT * FROM focus_sessions ORDER BY created_at DESC";
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Error fetching sessions", error: err.message });
+    }
+
+    res.json(results);
+  });
 });
+
+// READ sessions by user
+app.get("/sessions/user/:userId", (req, res) => {
+  const sql = `
+    SELECT * FROM focus_sessions
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching user sessions",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
 
 // READ one session
 app.get("/sessions/:id", (req, res) => {
-  const session = focusSessions.find(s => s.id == req.params.id);
+  const sql = "SELECT * FROM focus_sessions WHERE id = ?";
 
-  if (!session) {
-    return res.status(404).json({ message: "Session not found" });
-  }
+  db.query(sql, [req.params.id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "Error fetching session", error: err.message });
+    }
 
-  res.json(session);
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    res.json(results[0]);
+  });
 });
 
 // UPDATE session
 app.put("/sessions/:id", (req, res) => {
-  const session = focusSessions.find(s => s.id == req.params.id);
+  const {
+    start_time,
+    end_time,
+    duration_minutes,
+    status
+  } = req.body;
 
-  if (!session) {
-    return res.status(404).json({ message: "Session not found" });
-  }
+  const sql = `
+    UPDATE focus_sessions
+    SET
+      start_time = COALESCE(?, start_time),
+      end_time = COALESCE(?, end_time),
+      duration_minutes = COALESCE(?, duration_minutes),
+      status = COALESCE(?, status)
+    WHERE id = ?
+  `;
 
-  session.start_time = req.body.start_time || session.start_time;
-  session.end_time = req.body.end_time || session.end_time;
-  session.duration_minutes = req.body.duration_minutes ?? session.duration_minutes;
-  session.status = req.body.status || session.status;
+  db.query(sql, [start_time, end_time, duration_minutes, status, req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: "Error updating session", error: err.message });
+    }
 
-  res.json(session);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    res.json({ message: "Session updated successfully" });
+  });
 });
 
 // DELETE session
 app.delete("/sessions/:id", (req, res) => {
-  const index = focusSessions.findIndex(s => s.id == req.params.id);
+  const sql = "DELETE FROM focus_sessions WHERE id = ?";
 
-  if (index === -1) {
-    return res.status(404).json({ message: "Session not found" });
-  }
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ message: "Error deleting session", error: err.message });
+    }
 
-  focusSessions.splice(index, 1);
-  res.json({ message: "Session deleted successfully" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    res.json({ message: "Session deleted successfully" });
+  });
 });
 
-app.listen(3000, () => {
+app.listen(3000, "0.0.0.0", () => {
   console.log("Backend server is running on port 3000");
+});
+
+
+// CHANGE user password
+app.put("/users/:id/password", (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({
+      message: "Current password and new password are required"
+    });
+  }
+
+  const sql = "SELECT * FROM users WHERE id = ?";
+
+  db.query(sql, [req.params.id], async (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error finding user",
+        error: err.message
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const user = results[0];
+
+    const isMatch = await bcrypt.compare(current_password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Current password is incorrect"
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    const updateSql = "UPDATE users SET password = ? WHERE id = ?";
+
+    db.query(updateSql, [hashedPassword, req.params.id], (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Error updating password",
+          error: err.message
+        });
+      }
+
+      res.json({
+        message: "Password changed successfully"
+      });
+    });
+  });
+});
+
+
+// CREATE blocked website
+app.post("/blocked-websites", (req, res) => {
+  const { user_id, website_url, is_active = 1 } = req.body;
+
+  if (!user_id || !website_url) {
+    return res.status(400).json({
+      message: "user_id and website_url are required"
+    });
+  }
+
+  const sql = `
+    INSERT INTO blocked_websites
+    (user_id, website_url, is_active)
+    VALUES (?, ?, ?)
+  `;
+
+  db.query(sql, [user_id, website_url, is_active], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error creating blocked website",
+        error: err.message
+      });
+    }
+
+    res.status(201).json({
+      id: result.insertId,
+      user_id,
+      website_url,
+      is_active
+    });
+  });
+});
+
+// READ blocked websites by user
+app.get("/blocked-websites/user/:userId", (req, res) => {
+  const sql = `
+    SELECT *
+    FROM blocked_websites
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [req.params.userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error fetching blocked websites",
+        error: err.message
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+// DELETE blocked website
+app.delete("/blocked-websites/:id", (req, res) => {
+  const sql = "DELETE FROM blocked_websites WHERE id = ?";
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error deleting blocked website",
+        error: err.message
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Blocked website not found"
+      });
+    }
+
+    res.json({
+      message: "Blocked website deleted successfully"
+    });
+  });
 });

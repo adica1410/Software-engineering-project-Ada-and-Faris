@@ -3,45 +3,327 @@ package com.example.focusmodeapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.focusmodeapp.ui.theme.FocusModeAppTheme
+import androidx.compose.runtime.*
+import com.example.focusmodeapp.ui.CreateAccountScreen
+import com.example.focusmodeapp.ui.SplashScreen
+import com.example.focusmodeapp.ui.WelcomeScreen
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        val prefs = getSharedPreferences("focus_mode_user", MODE_PRIVATE)
+
         setContent {
-            FocusModeAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+
+            var currentScreen by remember {
+                mutableStateOf("splash")
+            }
+
+            var savedGoals by remember {
+                mutableStateOf(
+                    listOf(
+                        StudyGoal(
+                            name = "Daily Goal",
+                            type = "Daily",
+                            hours = 4,
+                            minutes = 0,
+                            completedHours = 0,
+                            completedMinutes = 0,
+                            reminderEnabled = true,
+                            reminderTime = "8:00 PM"
+                        ),
+                        StudyGoal(
+                            name = "Weekly Goal",
+                            type = "Weekly",
+                            hours = 15,
+                            minutes = 0,
+                            completedHours = 0,
+                            completedMinutes = 0,
+                            reminderEnabled = true,
+                            reminderTime = "8:00 PM"
+                        )
                     )
-                }
+                )
+            }
+
+            var editingGoal by remember {
+                mutableStateOf<StudyGoal?>(null)
+            }
+
+            LaunchedEffect(Unit) {
+                delay(3000)
+                currentScreen = "welcome"
+            }
+
+            when (currentScreen) {
+
+                "splash" -> SplashScreen()
+
+                "welcome" -> WelcomeScreen(
+                    onCreateAccountClick = {
+                        currentScreen = "createAccount"
+                    },
+                    onLoginClick = {
+                        currentScreen = "login"
+                    },
+                    onSkipClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "createAccount" -> CreateAccountScreen(
+                    onBackClick = {
+                        currentScreen = "welcome"
+                    },
+                    onAccountCreated = { fullName, email, password ->
+                        prefs.edit()
+                            .putString("fullName", fullName)
+                            .putString("email", email)
+                            .putString("password", password)
+                            .putBoolean("isRegistered", true)
+                            .apply()
+
+                        currentScreen = "login"
+                    }
+                )
+
+                "login" -> LoginScreen(
+                    savedEmail = prefs.getString("email", null),
+                    savedPassword = prefs.getString("password", null),
+                    onLoginSuccess = { userId, fullName, email ->
+                        prefs.edit()
+                            .putInt("userId", userId)
+                            .putString("fullName", fullName)
+                            .putString("email", email)
+                            .putBoolean("isLoggedIn", true)
+                            .apply()
+
+                        currentScreen = "home"
+                    },
+                    onBackClick = {
+                        currentScreen = "welcome"
+                    }
+                )
+
+                "home" -> HomeScreen(
+                    onStartSessionClick = {
+                        currentScreen = "startSession"
+                    },
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
+                    },
+                    onBlockedClick = {
+                        currentScreen = "blocked"
+                    },
+                    onBadgesClick = {
+                        currentScreen = "badges"
+                    },
+                    onHistoryClick = {
+                        currentScreen = "history"
+                    },
+                    onProfileClick = {
+                        currentScreen = "profile"
+                    },
+                    onSettingsClick = {
+                        currentScreen = "settings"
+                    },
+                    onPomodoroClick = {
+                        currentScreen = "pomodoro"
+                    }
+
+                )
+                "settings" -> SettingsScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    },
+                    onChangePasswordClick = {
+                        currentScreen = "changePassword"
+                    },
+                    onLogoutClick = {
+                        prefs.edit().clear().apply()
+                        currentScreen = "welcome"
+                    }
+                )
+
+                "statistics" -> StatisticsScreen(
+                    onHomeClick = { currentScreen = "home" },
+                    onGoalsClick = { currentScreen = "goals" },
+                    onBlockedClick = { currentScreen = "blocked" },
+                    onProfileClick = { currentScreen = "profile" }
+                )
+
+                "goals" -> GoalsScreen(
+                    savedGoals = savedGoals,
+
+                    onDeleteGoal = { goal ->
+                        savedGoals = savedGoals - goal
+                    },
+
+                    onEditGoal = { goal ->
+                        editingGoal = goal
+                        currentScreen = "createGoal"
+                    },
+
+                    onAddStudyTime = { goal ->
+                        val exists = savedGoals.any { it == goal }
+
+                        savedGoals = if (exists) {
+                            savedGoals.map {
+                                if (it == goal) {
+                                    it.copy(
+                                        completedHours = it.completedHours + 1
+                                    )
+                                } else {
+                                    it
+                                }
+                            }
+                        } else {
+                            savedGoals + goal.copy(
+                                completedHours = goal.completedHours + 1
+                            )
+                        }
+                    },
+
+                    onHomeClick = {
+                        currentScreen = "home"
+                    },
+
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+
+                    onGoalsClick = {},
+
+                    onCreateGoalClick = {
+                        editingGoal = null
+                        currentScreen = "createGoal"
+                    },
+
+                    onBlockedClick = {
+                        currentScreen = "blocked"
+                    },
+
+                    onProfileClick = {
+                        currentScreen = "profile"
+                    }
+                )
+
+                "blocked" -> BlockedWebsitesScreen(
+                    onHomeClick = {
+                        currentScreen = "home"
+                    },
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
+                    },
+                    onBlockedClick = {},
+                    onProfileClick = {
+                        currentScreen = "profile"
+                    }
+                )
+
+                "badges" -> BadgesScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "history" -> SessionHistoryScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "createGoal" -> CreateGoalScreen(
+                    goalToEdit = editingGoal,
+
+                    onBackClick = {
+                        editingGoal = null
+                        currentScreen = "goals"
+                    },
+
+                    onSaveGoalClick = { goal ->
+
+                        if (editingGoal != null) {
+                            val alreadyExists = savedGoals.any { it == editingGoal }
+
+                            savedGoals = if (alreadyExists) {
+                                savedGoals.map {
+                                    if (it == editingGoal) goal else it
+                                }
+                            } else {
+                                savedGoals + goal
+                            }
+                        } else {
+                            savedGoals = savedGoals + goal
+                        }
+
+                        editingGoal = null
+                        currentScreen = "goals"
+                    }
+                )
+
+                "startSession" -> StartFocusSessionScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
+                "profile" -> ProfileScreen(
+                    onHomeClick = {
+                        currentScreen = "home"
+                    },
+                    onStatisticsClick = {
+                        currentScreen = "statistics"
+                    },
+                    onGoalsClick = {
+                        currentScreen = "goals"
+                    },
+                    onBlockedClick = {
+                        currentScreen = "blocked"
+                    },
+                    onProfileClick = {},
+                    onEditProfileClick = {
+                        currentScreen = "editProfile"
+                    },
+                    onChangePasswordClick = {
+                        currentScreen = "changePassword"
+                    }
+                )
+
+// Add this new screen below profile:
+
+                "editProfile" -> EditProfileScreen(
+                    onBackClick = {
+                        currentScreen = "profile"
+                    },
+                    onSaveClick = {
+                        currentScreen = "profile"
+                    }
+                )
+                "changePassword" -> ChangePasswordScreen(
+                    onBackClick = {
+                        currentScreen = "profile"
+                    },
+                    onPasswordChanged = {
+                        currentScreen = "profile"
+                    }
+                )
+                "pomodoro" -> PomodoroScreen(
+                    onBackClick = {
+                        currentScreen = "home"
+                    }
+                )
+
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FocusModeAppTheme {
-        Greeting("Android")
     }
 }
