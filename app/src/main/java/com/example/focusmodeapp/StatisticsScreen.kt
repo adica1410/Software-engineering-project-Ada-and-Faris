@@ -121,9 +121,9 @@ fun StatisticsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MiniStat("⏱", completedSessions.toString(), "Completed\nSessions", Modifier.weight(1f))
-                MiniStat("🎯", "$focusScore%", "Weekly\nScore", Modifier.weight(1f))
-                MiniStat("🔥", currentStreak.toString(), "Day\nStreak", Modifier.weight(1f))
+                MiniStat("📚", completedSessions.toString(), "Sessions", Modifier.weight(1f))
+                MiniStat("🎯", "$focusScore%", "Score", Modifier.weight(1f))
+                MiniStat("🔥", currentStreak.toString(), "Streak", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -220,31 +220,38 @@ fun MiniStat(
 ) {
     Box(
         modifier = modifier
-            .height(86.dp)
+            .height(96.dp)
             .background(Color(0xFF10162A), RoundedCornerShape(16.dp))
             .border(0.8.dp, Color(0xFF232A45), RoundedCornerShape(16.dp))
-            .padding(14.dp)
+            .padding(10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 28.sp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = icon,
+                color = Color(0xFF9B5CFF),
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Column {
-                Text(
-                    text = number,
-                    color = Color.White,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Text(
+                text = number,
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                Text(
-                    text = label,
-                    color = Color(0xFFAAA6BB),
-                    fontSize = 10.sp,
-                    lineHeight = 13.sp
-                )
-            }
+            Text(
+                text = label,
+                color = Color(0xFFAAA6BB),
+                fontSize = 11.sp,
+                maxLines = 1
+            )
         }
     }
 }

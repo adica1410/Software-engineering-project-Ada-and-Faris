@@ -208,7 +208,7 @@ fun HomeScreen(
                 )
 
                 Text(
-                    text = "View all  ›",
+                    text = "View history  ›",
                     color = Color(0xFF9B5CFF),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -302,7 +302,7 @@ fun HomeTopBar(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -313,21 +313,6 @@ fun HomeTopBar(
                 onSettingsClick()
             }
         )
-
-        Box {
-            Text(
-                text = "♧",
-                color = Color.White,
-                fontSize = 31.sp
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(Color(0xFF8B3DFF), CircleShape)
-                    .align(Alignment.TopEnd)
-            )
-        }
     }
 }
 @Composable
@@ -686,12 +671,6 @@ fun StatCard(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-
-            Text(
-                text = subtitle,
-                color = Color(0xFFAAA6BB),
-                fontSize = 12.sp
-            )
         }
     }
 }
@@ -805,7 +784,7 @@ fun PomodoroCard(
 ) {
     Box(
         modifier = modifier
-            .height(160.dp)
+            .height(180.dp)
             .clickable { onClick() }
             .background(Color(0xFF251020), RoundedCornerShape(18.dp))
             .padding(16.dp)
@@ -854,7 +833,7 @@ fun StreakCard(
 ) {
     Box(
         modifier = modifier
-            .height(160.dp)
+            .height(180.dp)
             .clickable { onClick() }
             .background(Color(0xFF17151D), RoundedCornerShape(18.dp))
             .padding(16.dp)
@@ -927,15 +906,6 @@ fun ReminderCard(reminder: ReminderResponse?) {
                     fontSize = 12.sp
                 )
             }
-
-            Text(
-                text = "View All",
-                color = Color(0xFFB56DFF),
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .background(Color(0xFF27145F), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            )
         }
     }
 }
